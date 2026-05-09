@@ -4,7 +4,7 @@ const config = {
   testPathIgnorePatterns: ['/node_modules/', '/tests/e2e/'],
   transform: {},
   collectCoverageFrom: [
-    'projects/extension/js/**/*.js'
+    'projects/app/js/**/*.js'
   ],
   coverageReporters: ['text', 'lcov', 'json-summary']
 };

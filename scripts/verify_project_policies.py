@@ -5,7 +5,7 @@ import re
 
 def verify_no_external_libraries():
     passed = True
-    manifest_path = "projects/extension/manifest.json"
+    manifest_path = "projects/app/manifest.json"
     if os.path.exists(manifest_path):
         try:
             with open(manifest_path, "r") as f:

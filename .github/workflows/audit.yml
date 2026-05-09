@@ -75,9 +75,9 @@ jobs:
         npm test -- --coverage
         python scripts/update_coverage_badge.py
         # カバレッジレポートをWeb公開用に配置 (コミットはしない)
-        rm -rf projects/landing/coverage
-        mkdir -p projects/landing/coverage
-        cp -r coverage/lcov-report/* projects/landing/coverage/
+        rm -rf projects/web/coverage
+        mkdir -p projects/web/coverage
+        cp -r coverage/lcov-report/* projects/web/coverage/
 
     - name: Commit and Push README changes
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -92,7 +92,7 @@ jobs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: actions/upload-pages-artifact@v3
       with:
-        path: 'projects/landing'
+        path: 'projects/web'
 
   deploy:
     name: GitHub Pagesへデプロイ (Deploy to GitHub Pages)

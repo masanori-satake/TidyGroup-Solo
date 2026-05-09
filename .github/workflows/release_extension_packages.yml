@@ -45,7 +45,7 @@ jobs:
         run: python -m playwright install chromium --with-deps
 
       - name: Build packages
-        run: python scripts/generate_png_icons.py && python scripts/build.py
+        run: python scripts/generate_icons.py && python scripts/build.py
 
       - name: Create GitHub Release and Upload Assets
         uses: softprops/action-gh-release@v2

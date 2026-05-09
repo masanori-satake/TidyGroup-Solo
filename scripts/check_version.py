@@ -5,8 +5,8 @@ import os
 
 def check_version_consistency():
     try:
-        # 1. projects/extension/manifest.json
-        with open("projects/extension/manifest.json", "r") as f:
+        # 1. projects/app/manifest.json
+        with open("projects/app/manifest.json", "r") as f:
             manifest_version = json.load(f).get("version")
 
         # 2. package.json
@@ -30,7 +30,7 @@ def check_version_consistency():
             readme_version = badge_match.group(1) if badge_match else None
 
         versions = {
-            "projects/extension/manifest.json": manifest_version,
+            "projects/app/manifest.json": manifest_version,
             "package.json": package_version,
             "package-lock.json": lock_version,
             "package-lock.json (packages[''])": lock_pkg_version,

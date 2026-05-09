@@ -1,8 +1,8 @@
 # TidyGroup-Solo
 
-[![version](https://img.shields.io/badge/version-0.1.0-blue)](projects/extension/manifest.json)
+[![version](https://img.shields.io/badge/version-0.1.0-blue)](projects/app/manifest.json)
 [![Privacy-Local Only](https://img.shields.io/badge/Privacy-Local%20Only-brightgreen)](AGENTS.md)
-[![Manifest V3](https://img.shields.io/badge/Manifest-V3-orange)](projects/extension/manifest.json)
+[![Manifest V3](https://img.shields.io/badge/Manifest-V3-orange)](projects/app/manifest.json)
 
 〜大量に蓄積し、重複したタブグループをスマートに整理・クレンジングするローカル完結型Chrome拡張機能〜
 
@@ -29,7 +29,7 @@ TidyGroup-Soloは、プライバシーを最優先に設計された、タブグ
 1. このリポジトリからソースコードをダウンロードまたはクローンします。
 2. ブラウザで拡張機能管理ページを開きます（Chrome: `chrome://extensions`）。
 3. 「デベロッパー モード」をオンにします。
-4. 「パッケージ化されていない拡張機能を読み込む」ボタンをクリックし、`projects/extension` フォルダを選択します。
+4. 「パッケージ化されていない拡張機能を読み込む」ボタンをクリックし、`projects/app` フォルダを選択します。
 
 ## 免責事項
 

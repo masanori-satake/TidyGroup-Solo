@@ -8,7 +8,7 @@
     "test": "NODE_OPTIONS='--experimental-vm-modules' jest",
     "test:e2e": "playwright test",
     "build": "python3 scripts/build.py",
-    "generate-icons": "python3 scripts/generate_png_icons.py",
+    "generate-icons": "python3 scripts/generate_icons.py",
     "lint": "markdownlint '**/*.md'",
     "pre-commit": "pre-commit run --all-files"
   },
