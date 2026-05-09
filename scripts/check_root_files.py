@@ -58,7 +58,7 @@ def check_project_cleanliness():
         ALLOWED_DIRS,
     )
 
-    app_dir = os.path.join("projects", "extension")
+    app_dir = os.path.join("projects", "app")
     app_allowed_files = {
         "manifest.json",
         "index.html",
