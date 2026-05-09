@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TidyGroup -手術室-</title>
+  <title>TidyGroup - Dashboard</title>
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/shared.css">
   <link rel="stylesheet" href="css/main.css">
@@ -12,14 +12,100 @@
 <body class="md-sys-color-background">
   <div class="layout-root">
     <nav class="navigation-rail">
-      <!-- Navigation items -->
+      <div class="nav-items-container">
+        <button class="nav-item active" data-target="overview" title="概要">
+          <div class="nav-item__icon-container">
+            <span class="icon">🏠</span>
+          </div>
+          <span class="nav-item__label md-typescale-label-medium">概要</span>
+        </button>
+        <button class="nav-item" data-target="merge" title="スマートマージ">
+          <div class="nav-item__icon-container">
+            <span class="icon">📑</span>
+          </div>
+          <span class="nav-item__label md-typescale-label-medium">マージ</span>
+        </button>
+        <button class="nav-item" data-target="cleanup" title="一括掃除">
+          <div class="nav-item__icon-container">
+            <span class="icon">🧹</span>
+          </div>
+          <span class="nav-item__label md-typescale-label-medium">掃除</span>
+        </button>
+      </div>
     </nav>
+
     <main id="app" class="main-content">
-      <header>
-        <h1 class="md-typescale-headline-medium">総合ダッシュボード</h1>
-      </header>
-      <section id="content">
-        <!-- Dashboard content -->
+      <!-- Overview Section -->
+      <section id="section-overview" class="content-section active">
+        <header>
+          <h1 class="md-typescale-headline-medium">総合ダッシュボード</h1>
+        </header>
+
+        <div class="analysis-grid">
+          <div class="md-card analysis-card" id="card-mixed">
+            <div class="card-header">
+              <h2 class="md-typescale-title-medium">重複グループ</h2>
+              <span class="badge badge--warning count-badge">0</span>
+            </div>
+            <p class="md-typescale-body-medium">同じ名前のグループが複数あります。マージして整理しましょう。</p>
+            <div class="card-actions">
+              <button class="md-button md-button--text btn-to-merge">マージを確認</button>
+            </div>
+          </div>
+
+          <div class="md-card analysis-card" id="card-stale">
+            <div class="card-header">
+              <h2 class="md-typescale-title-medium">放置グループ</h2>
+              <span class="badge count-badge">0</span>
+            </div>
+            <p class="md-typescale-body-medium">1ヶ月以上更新がないグループです。削除を検討してください。</p>
+            <div class="card-actions">
+              <button class="md-button md-button--text btn-to-cleanup">掃除を確認</button>
+            </div>
+          </div>
+
+          <div class="md-card analysis-card" id="card-empty">
+            <div class="card-header">
+              <h2 class="md-typescale-title-medium">空グループ</h2>
+              <span class="badge count-badge">0</span>
+            </div>
+            <p class="md-typescale-body-medium">中身が空、または新規タブのみのグループです。</p>
+            <div class="card-actions">
+              <button class="md-button md-button--text btn-to-cleanup">掃除を確認</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Merge Section -->
+      <section id="section-merge" class="content-section">
+        <header>
+          <h1 class="md-typescale-headline-medium">Smart Merge</h1>
+        </header>
+        <div class="section-description md-typescale-body-large">
+          重複した残骸を一つにまとめ、情報を「名寄せ」します。
+        </div>
+        <div id="merge-list" class="item-list">
+          <!-- Merge candidates will be listed here -->
+        </div>
+      </section>
+
+      <!-- Cleanup Section -->
+      <section id="section-cleanup" class="content-section">
+        <header>
+          <h1 class="md-typescale-headline-medium">Batch Cleanup</h1>
+        </header>
+        <div class="section-description md-typescale-body-large">
+          「無価値なデータ」を効率よく一掃します。
+        </div>
+        <div id="cleanup-list" class="item-list">
+          <!-- Cleanup candidates will be listed here -->
+        </div>
+        <div class="sticky-footer" id="cleanup-footer" style="display: none;">
+          <button id="execute-cleanup" class="md-button md-button--filled">
+            選択した <span id="cleanup-count">0</span> 件を削除
+          </button>
+        </div>
       </section>
     </main>
   </div>
