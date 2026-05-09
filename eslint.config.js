@@ -12,6 +12,7 @@ export default [
         ...globals.browser,
         ...globals.webextensions,
         ...globals.es2021,
+        Utils: "readonly",
       },
     },
     rules: {
