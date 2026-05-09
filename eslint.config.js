@@ -1,0 +1,48 @@
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const globals = require("globals");
+
+export default [
+  {
+    files: ["**/*.js"],
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      globals: {
+        ...globals.browser,
+        ...globals.webextensions,
+        ...globals.es2021,
+        Utils: "readonly",
+      },
+    },
+    rules: {
+      "no-unused-vars": "warn",
+      "no-undef": "error",
+    },
+  },
+  {
+    files: ["projects/extension/**/*.js"],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+      },
+    },
+  },
+  {
+    files: ["tests/**/*.js", "jest.config.js"],
+    languageOptions: {
+      globals: {
+        ...globals.jest,
+        ...globals.node,
+      },
+    },
+  },
+  {
+    files: ["playwright.config.js", "scripts/**/*.js"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+];
