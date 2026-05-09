@@ -14,17 +14,17 @@ graph TD
 
     %% 遷移定義
     Icon --> Side
-    
+
     Side -->|①マージボタン| MergePage
     Side -->|②クリーンアップボタン| CleanupPage
     Side -->|③詳しく見る| MainDash
-    
+
     MainDash -->|統合ミッション開始| MergePage
     MainDash -->|掃除ミッション開始| CleanupPage
-    
+
     MergePage -->|実行| EndPage
     CleanupPage -->|実行| EndPage
-    
+
     EndPage -->|さらに整理する| MainDash
     EndPage -->|閉じる| Final((ブラウザ作業へ戻る))
 

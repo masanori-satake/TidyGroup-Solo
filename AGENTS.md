@@ -14,7 +14,7 @@ Jules、以下のリポジトリを以前のプロジェクト事例として参
 - **QuickLog-Solo**: https://github.com/masanori-satake/QuickLog-Solo
 - **Replace-Solo**: https://github.com/masanori-satake/Replace-Solo
 - **Issues-Solo**: https://github.com/masanori-satake/Issues-Solo
-- **TabMagnet-Solo**: https://github.com/masanori-satake/TabMagnet-Solo 
+- **TabMagnet-Solo**: https://github.com/masanori-satake/TabMagnet-Solo
   - ※今回のプロジェクトのメインのワークフロー・ベースとして参照してください。
 
 ## 4. プロジェクト概要: TidyGroup-Solo
@@ -31,7 +31,7 @@ Jules、以下のリポジトリを以前のプロジェクト事例として参
 ## 6. 開発ワークフロー
 1. **要件定義の優先**: コードを書く前に、必ずUIフローとデータ構造（TECH_SPEC.md参照）を相互確認すること。
 2. **コンポーネント指向のVanilla JS**: 過去作の `utils.js` やコンポーネントごとの命名規則（BEMライクなど）を継承すること。
-3. **段階的な実装**: 
+3. **段階的な実装**:
    - 骨格 (Manifest, UI Skeleton) ➔ データエンジン ➔ M3 UI 統合 ➔ アクション実装 の順。
 4. **コミュニケーション**: PRコメント、コミットメッセージ、およびユーザーとの対話を含め、すべてのコミュニケーションは**日本語**で行うこと。
 
