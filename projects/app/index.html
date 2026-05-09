@@ -43,7 +43,7 @@
         </header>
 
         <div id="active-groups-container" style="margin-bottom: 24px;">
-          <h2 class="md-typescale-title-large" style="margin-bottom: 16px;">実況中のグループ</h2>
+          <h2 class="md-typescale-title-large" style="margin-bottom: 16px;">アクティブなタブグループ</h2>
           <div id="active-list" class="item-list">
             <!-- Active groups will be listed here -->
           </div>
@@ -53,10 +53,10 @@
         <div class="analysis-grid">
           <div class="md-card analysis-card" id="card-mixed">
             <div class="card-header">
-              <h2 class="md-typescale-title-medium">重複グループ</h2>
+              <h2 class="md-typescale-title-medium">重複タブグループ</h2>
               <span class="badge badge--warning count-badge">0</span>
             </div>
-            <p class="md-typescale-body-medium">同じ名前のグループが複数あります。マージして整理しましょう。</p>
+            <p class="md-typescale-body-medium">同じ名前のタブグループが複数あります。マージして整理しましょう。</p>
             <div class="card-actions">
               <button class="md-button md-button--text btn-to-merge">マージを確認</button>
             </div>
@@ -64,10 +64,10 @@
 
           <div class="md-card analysis-card" id="card-stale">
             <div class="card-header">
-              <h2 class="md-typescale-title-medium">放置グループ</h2>
+              <h2 class="md-typescale-title-medium">放置タブグループ</h2>
               <span class="badge count-badge">0</span>
             </div>
-            <p class="md-typescale-body-medium">1ヶ月以上更新がないグループです。削除を検討してください。</p>
+            <p class="md-typescale-body-medium">1ヶ月以上更新がないタブグループです。削除を検討してください。</p>
             <div class="card-actions">
               <button class="md-button md-button--text btn-to-cleanup">掃除を確認</button>
             </div>
@@ -75,10 +75,10 @@
 
           <div class="md-card analysis-card" id="card-empty">
             <div class="card-header">
-              <h2 class="md-typescale-title-medium">空グループ</h2>
+              <h2 class="md-typescale-title-medium">空タブグループ</h2>
               <span class="badge count-badge">0</span>
             </div>
-            <p class="md-typescale-body-medium">中身が空、または新規タブのみのグループです。</p>
+            <p class="md-typescale-body-medium">中身が空、または新規タブのみのタブグループです。</p>
             <div class="card-actions">
               <button class="md-button md-button--text btn-to-cleanup">掃除を確認</button>
             </div>
@@ -117,7 +117,7 @@
           </select>
           <select id="filter-tabs" class="md-select">
             <option value="-1">すべてのタブ数</option>
-            <option value="0">空グループのみ</option>
+            <option value="0">空タブグループのみ</option>
             <option value="1">1タブ以下</option>
           </select>
         </div>

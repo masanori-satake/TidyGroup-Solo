@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.innerHTML = '';
 
     if (activeGroups.length === 0) {
-      container.innerHTML = '<p class="md-typescale-body-large">現在開いているグループはありません。</p>';
+      container.innerHTML = '<p class="md-typescale-body-large">現在開いているタブグループはありません。</p>';
       return;
     }
 
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
           </div>
           <div style="display: flex; gap: 8px;">
-            <button class="md-button md-button--outlined btn-ungroup" data-local-id="${g.localId}">グループ解除</button>
+            <button class="md-button md-button--outlined btn-ungroup" data-local-id="${g.localId}">タブグループ解除</button>
             <button class="md-button md-button--filled btn-close-unsave" data-id="${g.id}" data-local-id="${g.localId}">完結して閉じる</button>
           </div>
         </div>
@@ -87,9 +87,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const messageEl = document.getElementById('result-message');
     let message = '';
     if (stats.type === 'merge') {
-      message = `${stats.count} 個の重複グループをマージしました。`;
+      message = `${stats.count} 個の重複タブグループをマージしました。`;
     } else if (stats.type === 'cleanup') {
-      message = `${stats.count} 個の不要なグループを削除しました。`;
+      message = `${stats.count} 個の不要なタブグループを削除しました。`;
     }
     messageEl.textContent = message;
   }
@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     if (groupsByTitle.size === 0) {
-      container.innerHTML = '<p class="md-typescale-body-large">重複しているグループはありません。</p>';
+      container.innerHTML = '<p class="md-typescale-body-large">重複しているタブグループはありません。</p>';
       return;
     }
 
@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     if (candidates.length === 0) {
-      container.innerHTML = '<p class="md-typescale-body-large">条件に合致するグループはありません。</p>';
+      container.innerHTML = '<p class="md-typescale-body-large">条件に合致するタブグループはありません。</p>';
       document.getElementById('cleanup-footer').style.display = 'none';
       return;
     }
