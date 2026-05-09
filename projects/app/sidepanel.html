@@ -8,17 +8,49 @@
   <link rel="stylesheet" href="css/shared.css">
   <link rel="stylesheet" href="css/sidepanel.css">
 </head>
-<body>
-  <header>
-    <h1 class="md-typescale-title-large">TidyGroup</h1>
+<body class="md-sys-color-surface">
+  <header class="sidepanel-header">
+    <div class="header-spacer"></div>
+    <div class="header-actions">
+      <!-- Settings button will go here in the future -->
+      <div class="settings-placeholder"></div>
+    </div>
   </header>
   <main id="app">
-    <div class="score-container">
-      <div class="score-label">健康スコア</div>
-      <div class="score-value">--</div>
-    </div>
+    <section class="score-card">
+      <div class="score-container">
+        <div class="score-label md-typescale-label-medium">健康スコア</div>
+        <div class="score-value md-typescale-display-large" id="score-value">--</div>
+      </div>
+
+      <div id="anomaly-badges" class="badges-container">
+        <!-- Badges will be injected here -->
+      </div>
+    </section>
+
+    <section class="stats-section">
+      <div class="stat-item">
+        <span class="stat-label md-typescale-body-small">グループ総数</span>
+        <span class="stat-count md-typescale-title-medium" id="total-groups">--</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label md-typescale-body-small">合計タブ数</span>
+        <span class="stat-count md-typescale-title-medium" id="total-tabs">--</span>
+      </div>
+    </section>
+
     <div class="actions">
-      <button id="open-main" class="md-button md-button--filled">詳細をチェック</button>
+      <button id="open-main" class="md-button md-button--filled">
+        詳細をチェック
+      </button>
+      <div class="quick-actions">
+        <button id="start-merge" class="md-button md-button--tonal" disabled>
+          マージを開始
+        </button>
+        <button id="start-cleanup" class="md-button md-button--tonal" disabled>
+          一括掃除
+        </button>
+      </div>
     </div>
   </main>
   <script src="js/utils.js"></script>
