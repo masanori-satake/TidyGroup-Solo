@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sections = document.querySelectorAll('.content-section');
 
   // SPA Navigation
-  function navigate(targetId) {
+  function navigate(targetId, extraData = null) {
     navItems.forEach(item => {
       item.classList.toggle('active', item.dataset.target === targetId);
     });
@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (targetId === 'overview') updateOverview();
     if (targetId === 'merge') renderMergeList();
     if (targetId === 'cleanup') renderCleanupList();
+    if (targetId === 'result' && extraData) renderResultView(extraData);
   }
 
   navItems.forEach(item => {
@@ -28,7 +29,74 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateCard('card-mixed', analysis.mixed.length);
     updateCard('card-stale', analysis.stale.length);
     updateCard('card-empty', analysis.empty.length);
+
+    renderActiveList(analysis.active);
   }
+
+  function renderActiveList(activeGroups) {
+    const container = document.getElementById('active-list');
+    container.innerHTML = '';
+
+    if (activeGroups.length === 0) {
+      container.innerHTML = '<p class="md-typescale-body-large">現在開いているグループはありません。</p>';
+      return;
+    }
+
+    activeGroups.forEach(g => {
+      const card = document.createElement('div');
+      card.className = 'md-card item-card';
+      card.style.padding = '16px';
+      card.style.marginBottom = '12px';
+      card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="group-color-dot" style="background-color: ${g.color || '#ccc'}"></div>
+            <div>
+              <h3 class="md-typescale-title-medium">${g.title}</h3>
+              <p class="md-typescale-body-small">${g.tabCount} 個のタブ</p>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="md-button md-button--outlined btn-ungroup" data-local-id="${g.localId}">グループ解除</button>
+            <button class="md-button md-button--filled btn-close-unsave" data-id="${g.id}" data-local-id="${g.localId}">完結して閉じる</button>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+
+    container.querySelectorAll('.btn-ungroup').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const localId = parseInt(e.currentTarget.dataset.localId);
+        await TidyCore.ungroup(localId);
+        updateOverview();
+      });
+    });
+
+    container.querySelectorAll('.btn-close-unsave').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = e.currentTarget.dataset.id;
+        const localId = parseInt(e.currentTarget.dataset.localId);
+        await TidyCore.closeAndUnsave(id, localId);
+        updateOverview();
+      });
+    });
+  }
+
+  function renderResultView(stats) {
+    const messageEl = document.getElementById('result-message');
+    let message = '';
+    if (stats.type === 'merge') {
+      message = `${stats.count} 個の重複グループをマージしました。`;
+    } else if (stats.type === 'cleanup') {
+      message = `${stats.count} 個の不要なグループを削除しました。`;
+    }
+    messageEl.textContent = message;
+  }
+
+  document.getElementById('btn-result-back').addEventListener('click', () => {
+    navigate('overview');
+  });
 
   function updateCard(id, count) {
     const card = document.getElementById(id);
@@ -71,13 +139,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       card.className = 'md-card item-card';
       card.style.padding = '16px';
       card.style.marginBottom = '12px';
+
+      // Collect all unique domains from all duplicates
+      const allDomains = Array.from(new Set(groups.flatMap(g => g.domains))).slice(0, 5);
+      const domainHtml = allDomains.map(d => `<span class="domain-tag" style="background: var(--md-sys-color-surface-variant); padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-right: 4px;">${d}</span>`).join('');
+
       card.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <div>
             <h3 class="md-typescale-title-medium">${title}</h3>
             <p class="md-typescale-body-small">${groups.length} 個の重複が見つかりました</p>
+            <div style="margin-top: 8px;">${domainHtml}</div>
           </div>
-          <button class="md-button md-button--filled btn-merge-action" data-title="${title}">マージを実行</button>
+          <button class="md-button md-button--filled btn-merge-action" data-title="${title}" data-count="${groups.length}">マージを実行</button>
         </div>
       `;
       container.appendChild(card);
@@ -86,8 +160,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.querySelectorAll('.btn-merge-action').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const title = e.currentTarget.dataset.title;
+        const count = parseInt(e.currentTarget.dataset.count);
         await TidyCore.smartMerge(title);
-        renderMergeList();
+        navigate('result', { type: 'merge', count: count });
       });
     });
   }
@@ -102,30 +177,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.innerHTML = '';
     selectedCleanupIds.clear();
 
-    const candidates = [...analysis.stale, ...analysis.empty];
-    // De-duplicate by ID
-    const uniqueCandidates = Array.from(new Map(candidates.map(c => [c.id, c])).values());
+    const ageLimit = parseInt(document.getElementById('filter-age').value);
+    const tabLimit = parseInt(document.getElementById('filter-tabs').value);
 
-    if (uniqueCandidates.length === 0) {
-      container.innerHTML = '<p class="md-typescale-body-large">掃除が必要なグループはありません。</p>';
+    const candidates = analysis.stashed.filter(g => {
+      const now = Date.now();
+      const ageInDays = (now - g.updateTime) / (1000 * 60 * 60 * 24);
+
+      // Age filter
+      if (ageLimit > 0 && ageInDays < ageLimit) return false;
+
+      // Tab count filter
+      if (tabLimit === 0) {
+        // Empty only
+        const isEmpty = g.tabCount === 0 || (g.tabCount === 1 && g.tabs[0].url === 'chrome://newtab/');
+        if (!isEmpty) return false;
+      } else if (tabLimit === 1) {
+        // 1 tab or less
+        if (g.tabCount > 1) return false;
+      }
+
+      return true;
+    });
+
+    if (candidates.length === 0) {
+      container.innerHTML = '<p class="md-typescale-body-large">条件に合致するグループはありません。</p>';
       document.getElementById('cleanup-footer').style.display = 'none';
       return;
     }
 
-    uniqueCandidates.forEach(g => {
+    candidates.forEach(g => {
       const item = document.createElement('div');
       item.className = 'group-card';
-      const isStale = analysis.stale.some(s => s.id === g.id);
-      const isEmpty = analysis.empty.some(e => e.id === g.id);
 
       item.innerHTML = `
         <input type="checkbox" class="cleanup-checkbox" data-id="${g.id}">
         <div class="group-color-dot" style="background-color: ${g.color || '#ccc'}"></div>
         <div class="group-info">
-          <div class="md-typescale-title-small">${g.title}</div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="md-typescale-title-small">${g.title}</div>
+            ${g.hasMobile ? '<span class="badge badge--info" style="font-size: 10px; padding: 0 4px;">Mobile</span>' : ''}
+          </div>
           <div class="group-meta">
             <span>タブ: ${g.tabCount}</span>
-            <span>${isStale ? '放置' : ''} ${isEmpty ? '空' : ''}</span>
+            <span>${g.domains.join(', ')}</span>
           </div>
         </div>
       `;
@@ -147,14 +242,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  document.getElementById('filter-age').addEventListener('change', renderCleanupList);
+  document.getElementById('filter-tabs').addEventListener('change', renderCleanupList);
+
   function updateCleanupCount() {
     document.getElementById('cleanup-count').textContent = selectedCleanupIds.size;
     document.getElementById('execute-cleanup').disabled = selectedCleanupIds.size === 0;
   }
 
   document.getElementById('execute-cleanup').addEventListener('click', async () => {
+    const count = selectedCleanupIds.size;
     await TidyCore.batchCleanup(Array.from(selectedCleanupIds));
-    renderCleanupList();
+    navigate('result', { type: 'cleanup', count: count });
   });
 
   // Hash Routing
