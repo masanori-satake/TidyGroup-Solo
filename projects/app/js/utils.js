@@ -8,7 +8,6 @@ const Utils = {
 
     chrome.tabs.query({ url: baseUrl + '*' }, (tabs) => {
       if (tabs.length > 0) {
-        const updateInfo = { active: true };
         if (target) {
           chrome.tabs.update(tabs[0].id, { url: url, active: true });
         } else {
@@ -150,7 +149,7 @@ const TidyCore = {
    * Smart Merge: Consolidates duplicate groups into one Active group
    */
   async smartMerge(title) {
-    const { activeGroups, savedGroups } = await this.fetchState();
+    const { savedGroups } = await this.fetchState();
     const duplicates = savedGroups.filter(sg => (sg.title || 'Untitled') === title);
 
     if (duplicates.length <= 1) return;

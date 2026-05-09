@@ -13,6 +13,7 @@ export default [
         ...globals.webextensions,
         ...globals.es2021,
         Utils: "readonly",
+        TidyCore: "readonly",
       },
     },
     rules: {
