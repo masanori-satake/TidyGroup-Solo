@@ -213,6 +213,15 @@ body {
   text-align: center;
   cursor: pointer;
   border-bottom: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.settings-tab:hover {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .settings-tab.active {
@@ -233,6 +242,12 @@ body {
 .settings-section-title {
   color: var(--md-sys-color-primary);
   margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.md-typescale-label-large {
+  font-size: 14px;
+  line-height: 20px;
   font-weight: 500;
 }
 

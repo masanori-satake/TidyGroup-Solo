@@ -80,8 +80,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     dialog.className = 'md-dialog md-dialog--settings';
     dialog.innerHTML = `
       <div class="settings-tabs">
-        <div class="settings-tab active" data-tab="general">一般</div>
-        <div class="settings-tab" data-tab="about">About</div>
+        <div class="settings-tab active" data-tab="general" title="一般">
+          <span class="material-symbols-outlined">settings</span>
+        </div>
+        <div class="settings-tab" data-tab="about" title="About">
+          <span class="material-symbols-outlined">info</span>
+        </div>
       </div>
       <div class="settings-content" id="settings-content-pane">
         <!-- Content will be injected here -->
@@ -208,14 +212,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       } else if (tabName === 'about') {
         contentPane.innerHTML = `
-          <div style="text-align: center; padding-top: 16px;">
-            <img src="icons/icon128.png" style="width: 64px; height: 64px; margin-bottom: 16px;">
+          <div style="text-align: center; padding-top: 8px;">
+            <img src="icons/icon128.png" style="width: 64px; height: 64px; margin-bottom: 12px;">
             <div class="md-typescale-title-medium">TidyGroup-Solo</div>
-            <div class="md-typescale-body-small">Version 0.3.0</div>
-            <div class="md-typescale-body-medium" style="margin-top: 24px; color: var(--md-sys-color-on-surface-variant);">
-              大量のタブグループを整理し、<br>あなたのブラウザに平穏をもたらします。
+            <div class="md-typescale-body-small" style="margin-bottom: 16px;">Version 0.3.0</div>
+
+            <div class="md-typescale-body-medium" style="text-align: left; margin-bottom: 24px; color: var(--md-sys-color-on-surface-variant);">
+              大量に蓄積し、重複したタブグループをスマートに整理・クレンジングするローカル完結型Chrome拡張機能。
             </div>
-            <div class="md-typescale-body-small" style="margin-top: 32px;">
+
+            <div style="text-align: left; border-top: 1px solid var(--md-sys-color-outline-variant); padding-top: 16px;">
+              <div class="md-typescale-label-large" style="margin-bottom: 8px; color: var(--md-sys-color-primary);">ポリシー</div>
+              <div class="md-typescale-body-small" style="margin-bottom: 12px;">
+                本拡張機能は、ユーザーのプライバシーを最優先に設計されており、外部サーバーとの通信は一切行わず、すべてのデータはローカルで処理されます。
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px;">
+                <a href="#" class="md-typescale-body-small" style="color: var(--md-sys-color-primary); text-decoration: none;">プライバシーポリシー</a>
+                <a href="#" class="md-typescale-body-small" style="color: var(--md-sys-color-primary); text-decoration: none;">利用規約</a>
+              </div>
+            </div>
+
+            <div class="md-typescale-body-small" style="margin-top: 32px; opacity: 0.7;">
               © 2026 Solo Series
             </div>
           </div>
