@@ -1,0 +1,15 @@
+.layout-root {
+  display: flex;
+  min-height: 100vh;
+}
+
+.navigation-rail {
+  width: 80px;
+  background-color: var(--md-sys-color-surface-variant);
+  flex-shrink: 0;
+}
+
+.main-content {
+  flex-grow: 1;
+  padding: 24px;
+}

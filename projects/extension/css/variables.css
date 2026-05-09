@@ -1,0 +1,43 @@
+:root {
+  /* Material Design 3 Color Palette (Green based) */
+  --md-sys-color-primary: #006d3b;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #99f6b4;
+  --md-sys-color-on-primary-container: #00210e;
+
+  --md-sys-color-secondary: #4f6353;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #d2e8d4;
+  --md-sys-color-on-secondary-container: #0c1f13;
+
+  --md-sys-color-tertiary: #3b6470;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #beeaf7;
+  --md-sys-color-on-tertiary-container: #001f26;
+
+  --md-sys-color-error: #ba1a1a;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad6;
+  --md-sys-color-on-error-container: #410002;
+
+  --md-sys-color-background: #fbfdf8;
+  --md-sys-color-on-background: #191c19;
+
+  --md-sys-color-surface: #fbfdf8;
+  --md-sys-color-on-surface: #191c19;
+  --md-sys-color-surface-variant: #dce5db;
+  --md-sys-color-on-surface-variant: #414942;
+
+  --md-sys-color-outline: #717971;
+
+  /* Typography */
+  --md-sys-typescale-body-medium-font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --md-sys-typescale-body-medium-size: 14px;
+  --md-sys-typescale-body-medium-weight: 400;
+
+  /* Shape */
+  --md-sys-shape-corner-small: 4px;
+  --md-sys-shape-corner-medium: 12px;
+  --md-sys-shape-corner-large: 16px;
+  --md-sys-shape-corner-extra-large: 28px;
+}

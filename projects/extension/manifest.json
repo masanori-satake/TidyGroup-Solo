@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "TidyGroup-Solo",
+  "version": "1.0.0",
+  "description": "Clean up and organize your tab groups with ease.",
+  "permissions": [
+    "sidePanel",
+    "tabGroups",
+    "tabs",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "js/background.js"
+  },
+  "action": {
+    "default_title": "Open TidyGroup Side Panel"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
