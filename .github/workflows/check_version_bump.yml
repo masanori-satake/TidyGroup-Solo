@@ -22,10 +22,15 @@ jobs:
       - name: Get base version
         id: base_version
         run: |
-          git checkout ${{ github.base_ref }}
-          VERSION=$(jq -r .version projects/app/manifest.json)
+          # Try to get version from projects/app or projects/extension in the base branch
+          if git show ${{ github.base_ref }}:projects/app/manifest.json >/dev/null 2>&1; then
+            VERSION=$(git show ${{ github.base_ref }}:projects/app/manifest.json | jq -r .version)
+          elif git show ${{ github.base_ref }}:projects/extension/manifest.json >/dev/null 2>&1; then
+            VERSION=$(git show ${{ github.base_ref }}:projects/extension/manifest.json | jq -r .version)
+          else
+            VERSION="0.0.0"
+          fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          git checkout ${{ github.head_ref }}
 
       - name: Get head version
         id: head_version
@@ -39,8 +44,8 @@ jobs:
           HEAD=${{ steps.head_version.outputs.version }}
           echo "Base version: $BASE"
           echo "Head version: $HEAD"
-          if [ "$BASE" = "$HEAD" ]; then
+          if [ "$BASE" = "$HEAD" ] && [ "$BASE" != "0.0.0" ]; then
             echo "Error: Extension source files in 'projects/app/' were modified, but version in manifest.json was not bumped."
             exit 1
           fi
-          echo "Version bump detected."
+          echo "Version bump check completed."
