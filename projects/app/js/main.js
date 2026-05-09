@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  await TidyCore.init();
+
   const navItems = document.querySelectorAll('.nav-item');
   const sections = document.querySelectorAll('.content-section');
 
@@ -52,13 +54,13 @@ document.addEventListener('DOMContentLoaded', async () => {
           <div style="display: flex; align-items: center; gap: 12px;">
             <div class="group-color-dot" style="background-color: ${g.color || '#ccc'}"></div>
             <div>
-              <h3 class="md-typescale-title-medium">${g.title}</h3>
+              <h3 class="md-typescale-title-medium">${g.title || '無題'}</h3>
               <p class="md-typescale-body-small">${g.tabCount} 個のタブ</p>
             </div>
           </div>
           <div style="display: flex; gap: 8px;">
-            <button class="md-button md-button--outlined btn-ungroup" data-local-id="${g.localId}">タブグループ解除</button>
-            <button class="md-button md-button--filled btn-close-unsave" data-id="${g.id}" data-local-id="${g.localId}">完結して閉じる</button>
+            <button class="md-button md-button--outlined btn-ungroup" data-local-id="${g.localId}">解除</button>
+            <button class="md-button md-button--filled btn-close-unsave" data-id="${g.id}" data-local-id="${g.localId}">完結</button>
           </div>
         </div>
       `;
@@ -68,8 +70,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     container.querySelectorAll('.btn-ungroup').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const localId = parseInt(e.currentTarget.dataset.localId);
-        await TidyCore.ungroup(localId);
-        updateOverview();
+        Utils.UI.showConfirm('グループ解除', 'タブグループを解除しますか？タブはそのまま残ります。', async () => {
+          await TidyCore.ungroup(localId);
+          updateOverview();
+          Utils.UI.showToast('グループを解除しました');
+        });
       });
     });
 
@@ -77,8 +82,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       btn.addEventListener('click', async (e) => {
         const id = e.currentTarget.dataset.id;
         const localId = parseInt(e.currentTarget.dataset.localId);
-        await TidyCore.closeAndUnsave(id, localId);
-        updateOverview();
+        Utils.UI.showConfirm('完結して閉じる', 'タブをすべて閉じ、保存リストからも削除しますか？', async () => {
+          await TidyCore.closeAndUnsave(id, localId);
+          updateOverview();
+          Utils.UI.showToast('グループを削除しました');
+        });
       });
     });
   }
@@ -161,8 +169,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       btn.addEventListener('click', async (e) => {
         const title = e.currentTarget.dataset.title;
         const count = parseInt(e.currentTarget.dataset.count);
-        await TidyCore.smartMerge(title);
-        navigate('result', { type: 'merge', count: count });
+        Utils.UI.showConfirm('スマート・マージ', `「${title}」の重複を統合しますか？`, async () => {
+          await TidyCore.smartMerge(title);
+          Utils.UI.showToast('マージが完了しました');
+          navigate('result', { type: 'merge', count: count });
+        });
       });
     });
   }
@@ -252,8 +263,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('execute-cleanup').addEventListener('click', async () => {
     const count = selectedCleanupIds.size;
-    await TidyCore.batchCleanup(Array.from(selectedCleanupIds));
-    navigate('result', { type: 'cleanup', count: count });
+    Utils.UI.showConfirm('一括掃除', `${count} 件のタブグループを削除しますか？`, async () => {
+      await TidyCore.batchCleanup(Array.from(selectedCleanupIds));
+      Utils.UI.showToast('掃除が完了しました');
+      navigate('result', { type: 'cleanup', count: count });
+    });
   });
 
   // Hash Routing

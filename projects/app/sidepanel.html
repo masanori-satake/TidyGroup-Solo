@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TidyGroup - Dashboard</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/shared.css">
   <link rel="stylesheet" href="css/sidepanel.css">
@@ -12,15 +13,16 @@
   <header class="sidepanel-header">
     <div class="header-spacer"></div>
     <div class="header-actions">
-      <!-- Settings button will go here in the future -->
-      <div class="settings-placeholder"></div>
+      <button id="btn-settings" class="md-button md-button--text" style="padding: 8px;">
+        <span class="material-symbols-outlined">settings</span>
+      </button>
     </div>
   </header>
   <main id="app">
     <section class="score-card">
       <div class="score-container">
-        <div class="score-label md-typescale-label-medium">健康スコア</div>
-        <div class="score-value md-typescale-display-large" id="score-value">--</div>
+        <div class="score-label md-typescale-label-medium">スコア</div>
+        <div class="score-value md-typescale-display-large"><span id="score-value">--</span><span class="md-typescale-title-large">%</span></div>
       </div>
 
       <div id="anomaly-badges" class="badges-container">
