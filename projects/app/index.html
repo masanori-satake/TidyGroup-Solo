@@ -42,13 +42,21 @@
           <h1 class="md-typescale-headline-medium">総合ダッシュボード</h1>
         </header>
 
+        <div id="active-groups-container" style="margin-bottom: 24px;">
+          <h2 class="md-typescale-title-large" style="margin-bottom: 16px;">アクティブなタブグループ</h2>
+          <div id="active-list" class="item-list">
+            <!-- Active groups will be listed here -->
+          </div>
+        </div>
+
+        <h2 class="md-typescale-title-large" style="margin-bottom: 16px;">分析ステータス</h2>
         <div class="analysis-grid">
           <div class="md-card analysis-card" id="card-mixed">
             <div class="card-header">
-              <h2 class="md-typescale-title-medium">重複グループ</h2>
+              <h2 class="md-typescale-title-medium">重複タブグループ</h2>
               <span class="badge badge--warning count-badge">0</span>
             </div>
-            <p class="md-typescale-body-medium">同じ名前のグループが複数あります。マージして整理しましょう。</p>
+            <p class="md-typescale-body-medium">同じ名前のタブグループが複数あります。マージして整理しましょう。</p>
             <div class="card-actions">
               <button class="md-button md-button--text btn-to-merge">マージを確認</button>
             </div>
@@ -56,10 +64,10 @@
 
           <div class="md-card analysis-card" id="card-stale">
             <div class="card-header">
-              <h2 class="md-typescale-title-medium">放置グループ</h2>
+              <h2 class="md-typescale-title-medium">放置タブグループ</h2>
               <span class="badge count-badge">0</span>
             </div>
-            <p class="md-typescale-body-medium">1ヶ月以上更新がないグループです。削除を検討してください。</p>
+            <p class="md-typescale-body-medium">1ヶ月以上更新がないタブグループです。削除を検討してください。</p>
             <div class="card-actions">
               <button class="md-button md-button--text btn-to-cleanup">掃除を確認</button>
             </div>
@@ -67,10 +75,10 @@
 
           <div class="md-card analysis-card" id="card-empty">
             <div class="card-header">
-              <h2 class="md-typescale-title-medium">空グループ</h2>
+              <h2 class="md-typescale-title-medium">空タブグループ</h2>
               <span class="badge count-badge">0</span>
             </div>
-            <p class="md-typescale-body-medium">中身が空、または新規タブのみのグループです。</p>
+            <p class="md-typescale-body-medium">中身が空、または新規タブのみのタブグループです。</p>
             <div class="card-actions">
               <button class="md-button md-button--text btn-to-cleanup">掃除を確認</button>
             </div>
@@ -99,6 +107,21 @@
         <div class="section-description md-typescale-body-large">
           「無価値なデータ」を効率よく一掃します。
         </div>
+
+        <div class="filter-bar" style="display: flex; gap: 16px; margin-bottom: 16px; align-items: center;">
+          <label class="md-typescale-label-large">フィルター:</label>
+          <select id="filter-age" class="md-select">
+            <option value="0">すべての期間</option>
+            <option value="7">1週間以上放置</option>
+            <option value="30" selected>1ヶ月以上放置</option>
+          </select>
+          <select id="filter-tabs" class="md-select">
+            <option value="-1">すべてのタブ数</option>
+            <option value="0">空タブグループのみ</option>
+            <option value="1">1タブ以下</option>
+          </select>
+        </div>
+
         <div id="cleanup-list" class="item-list">
           <!-- Cleanup candidates will be listed here -->
         </div>
@@ -106,6 +129,16 @@
           <button id="execute-cleanup" class="md-button md-button--filled">
             選択した <span id="cleanup-count">0</span> 件を削除
           </button>
+        </div>
+      </section>
+
+      <!-- Result Section -->
+      <section id="section-result" class="content-section">
+        <div style="text-align: center; padding: 48px 16px;">
+          <span class="material-symbols-outlined" style="font-size: 64px; color: var(--md-sys-color-primary);">check_circle</span>
+          <h1 class="md-typescale-headline-medium" id="result-title">整理が完了しました</h1>
+          <p class="md-typescale-body-large" id="result-message" style="margin: 16px 0 32px;"></p>
+          <button id="btn-result-back" class="md-button md-button--filled">ダッシュボードへ戻る</button>
         </div>
       </section>
     </main>

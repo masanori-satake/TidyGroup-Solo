@@ -81,12 +81,34 @@ const TidyCore = {
       const tabCount = sg.tabs ? sg.tabs.length : 0;
       const title = sg.title || 'Untitled';
 
+      const domains = Array.from(new Set((sg.tabs || [])
+        .map(t => {
+          try {
+            return new URL(t.url).hostname;
+          } catch (e) {
+            return null;
+          }
+        })
+        .filter(h => h && h !== 'newtab' && h !== 'localhost')))
+        .slice(0, 3);
+
+      const hasMobile = (sg.tabs || []).some(t => {
+        try {
+          const host = new URL(t.url).hostname;
+          return host.startsWith('m.') || host.startsWith('mobile.');
+        } catch (e) {
+          return false;
+        }
+      });
+
       const groupInfo = {
         id: sg.savedGuid, // Saved groups use GUID
         localId: sg.localGroupId,
         title: title,
         color: sg.color,
         tabCount: tabCount,
+        domains: domains,
+        hasMobile: hasMobile,
         updateTime: sg.updateTime,
         isActive: isActive,
         tabs: sg.tabs || []
@@ -210,6 +232,36 @@ const TidyCore = {
       if (chrome.tabGroups.deleteSavedGroup) {
         await chrome.tabGroups.deleteSavedGroup(id);
       }
+    }
+  },
+
+  /**
+   * Close and Unsave: Closes active tabs and deletes from saved list
+   */
+  async closeAndUnsave(savedGuid, localGroupId) {
+    if (localGroupId !== null) {
+      const tabs = await chrome.tabs.query({ groupId: localGroupId });
+      const tabIds = tabs.map(t => t.id);
+      if (tabIds.length > 0) {
+        await chrome.tabs.remove(tabIds);
+      }
+    }
+
+    if (savedGuid && chrome.tabGroups.deleteSavedGroup) {
+      await chrome.tabGroups.deleteSavedGroup(savedGuid);
+    }
+  },
+
+  /**
+   * Ungroup: Dissolves the group but keeps tabs open
+   */
+  async ungroup(localGroupId) {
+    if (localGroupId === null) return;
+
+    const tabs = await chrome.tabs.query({ groupId: localGroupId });
+    const tabIds = tabs.map(t => t.id);
+    if (tabIds.length > 0) {
+      await chrome.tabs.ungroup(tabIds);
     }
   }
 };

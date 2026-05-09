@@ -28,30 +28,46 @@ def get_base_version():
         return None
 
 def check_version_bump():
-    # Only run on CI or if specifically requested, or detect if projects/app has changes
-    # For a pre-commit hook, we want to know if projects/app/ is staged for commit.
-
+    """
+    Checks if projects/app/ has changes compared to the base branch,
+    and if so, ensures the version has been bumped.
+    """
     try:
-        # Get staged files in projects/app/
-        cmd = ["git", "diff", "--cached", "--name-only", "projects/app/"]
+        # 1. Check if there are ANY changes in projects/app/ compared to main
+        # This includes staged, unstaged, and commits in the current branch
+        cmd = ["git", "diff", "main", "--name-only", "projects/app/"]
         result = subprocess.run(cmd, capture_output=True, text=True)
-        staged_files = result.stdout.strip().split("\n")
-        staged_files = [f for f in staged_files if f]
+        changed_files = result.stdout.strip().split("\n")
+        changed_files = [f for f in changed_files if f]
 
-        if not staged_files:
-            # No changes in projects/app/, no bump needed
+        if not changed_files:
+            # No changes in projects/app/ compared to main
             return True
 
-        # Current version
-        with open("projects/app/manifest.json", "r") as f:
+        # 2. Get the current version in the workspace
+        manifest_path = "projects/app/manifest.json"
+        if not os.path.exists(manifest_path):
+            print(f"Error: {manifest_path} not found.")
+            return False
+
+        with open(manifest_path, "r") as f:
             current_version = json.load(f).get("version")
 
+        # 3. Get the version in the main branch
         base_version = get_base_version()
 
-        if base_version and current_version == base_version:
-            print(f"Error: Files in projects/app/ are modified, but version in manifest.json is still {current_version}.")
-            print("Please increment the version number.")
-            return False
+        if base_version:
+            if current_version == base_version:
+                print(f"Error: Detected changes in 'projects/app/' compared to 'main', but version is still '{current_version}'.")
+                print("Please increment the version number in 'projects/app/manifest.json' (and ensure consistency in other files).")
+                print(f"Changed files:\n  " + "\n  ".join(changed_files[:10]))
+                if len(changed_files) > 10:
+                    print(f"  ... and {len(changed_files) - 10} more.")
+                return False
+            else:
+                print(f"Version bump detected: {base_version} -> {current_version}")
+        else:
+            print("Could not determine base version from 'main'. Skipping bump check.")
 
         return True
     except Exception as e:

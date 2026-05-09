@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (analysis.empty.length > 0 || analysis.stale.length > 0) {
-      addBadge('不要なグループ', 'warning');
+      addBadge('不要なタブグループ', 'warning');
       startCleanupBtn.disabled = false;
     } else {
       startCleanupBtn.disabled = true;
