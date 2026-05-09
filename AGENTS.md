@@ -6,7 +6,7 @@
 
 ## 2. コア哲学 (Soloシリーズ宣言)
 
-- **外部依存ゼロ (Zero External Dependencies)**: Vanilla JavaScript、HTML、CSSのみを使用すること。React, Vue, Tailwind, jQueryなどは一切使用禁止。
+- **外部依存ゼロ (Zero External Dependencies)**: Vanilla JavaScript、HTML、CSSのみを使用すること。React, Vue, Tailwind, jQueryなどは一切使用禁止。ただし、デザイン面でのMaterial Symbols等の外部フォントの利用は許可される。
 - **プライバシー第一 (ローカル完結)**: 外部サーバーへのAPI通信やトラッキングは禁止。すべてのデータはユーザーのブラウザ内に留めること。
 - **Material Design 3 (M3) の美学**: GoogleのMaterial 3ガイドラインを厳格に遵守し、UIコンポーネント、カラー（トークン）、タイポグラフィ、角丸（16px等）、Elevationを構成すること。
 - **長期的な安定性**: ビルドステップ（npm install等）を必要とせず、5年後もそのまま動作するような、標準に忠実なコードを書くこと。

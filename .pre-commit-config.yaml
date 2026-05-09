@@ -23,3 +23,16 @@ repos:
     hooks:
     -   id: markdownlint
         args: ["--config", ".markdownlint.json"]
+
+-   repo: local
+    hooks:
+    -   id: check-version
+        name: check version consistency
+        entry: python3 scripts/check_version.py
+        language: system
+        pass_filenames: false
+    -   id: check-version-bump
+        name: check version bump
+        entry: python3 scripts/check_version_bump.py
+        language: system
+        pass_filenames: false
