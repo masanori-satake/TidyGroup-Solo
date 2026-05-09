@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="title" content="TidyGroup-Solo" />
+    <meta name="description" content="Clean up and organize your tab groups with ease. Privacy-focused and works completely offline." />
+    <title>TidyGroup-Solo</title>
+    <style>
+      :root {
+        --md-sys-color-primary: #386a20;
+        --md-sys-color-on-primary: #ffffff;
+        --md-sys-color-primary-container: #b8f397;
+        --md-sys-color-on-primary-container: #042100;
+        --md-sys-color-surface: #fdfbff;
+        --md-sys-color-on-surface: #1a1c1e;
+        --md-sys-color-outline: #73777f;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        background-color: var(--md-sys-color-surface);
+        color: var(--md-sys-color-on-surface);
+        line-height: 1.6;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 2rem;
+        border-bottom: 1px solid var(--md-sys-color-outline);
+      }
+      .lang-switcher {
+        display: flex;
+        gap: 0.5rem;
+        margin-left: 1.5rem;
+      }
+      .lang-switch {
+        cursor: pointer;
+        background: none;
+        border: 1px solid var(--md-sys-color-outline);
+        border-radius: 4px;
+        padding: 0.2rem 0.5rem;
+        font-size: 0.8rem;
+        color: var(--md-sys-color-on-surface);
+      }
+      .lang-switch.active {
+        background-color: var(--md-sys-color-primary);
+        color: var(--md-sys-color-on-primary);
+        border-color: var(--md-sys-color-primary);
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+        text-decoration: none;
+        color: var(--md-sys-color-on-surface);
+      }
+      nav a {
+        margin-left: 1.5rem;
+        text-decoration: none;
+        color: var(--md-sys-color-on-surface);
+      }
+      main {
+        max-width: 800px;
+        margin: 4rem auto;
+        padding: 0 2rem;
+        text-align: center;
+      }
+      h1 {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+      }
+      .tagline {
+        font-size: 1.2rem;
+        color: var(--md-sys-color-outline);
+        margin-bottom: 2rem;
+      }
+      .cta-button {
+        display: inline-block;
+        background-color: var(--md-sys-color-primary);
+        color: var(--md-sys-color-on-primary);
+        padding: 0.8rem 2rem;
+        border-radius: 100px;
+        text-decoration: none;
+        font-weight: bold;
+        margin-bottom: 4rem;
+      }
+      section {
+        text-align: left;
+        margin-bottom: 4rem;
+      }
+      h2 {
+        border-bottom: 2px solid var(--md-sys-color-primary);
+        display: inline-block;
+        margin-bottom: 2rem;
+      }
+      .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+      }
+      .feature-item {
+        padding: 1.5rem;
+        border: 1px solid var(--md-sys-color-outline);
+        border-radius: 16px;
+      }
+      .feature-item h3 {
+        margin-top: 0;
+        color: var(--md-sys-color-primary);
+      }
+      footer {
+        text-align: center;
+        padding: 2rem;
+        border-top: 1px solid var(--md-sys-color-outline);
+        color: var(--md-sys-color-outline);
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a href="index.html" class="logo"> TidyGroup-Solo </a>
+      <nav style="display: flex; align-items: center">
+        <a href="usage.html" data-i18n="usage">使い方</a>
+        <a href="privacy.html" data-i18n="privacy">プライバシーポリシー</a>
+        <div class="lang-switcher">
+          <button class="lang-switch" data-lang="en" data-i18n="langEn">
+            English
+          </button>
+          <button class="lang-switch" data-lang="ja" data-i18n="langJa">
+            日本語
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <h1>TidyGroup-Solo</h1>
+      <p class="tagline" data-i18n="tagline">
+        〜大量に蓄積し、重複したタブグループをスマートに整理・クレンジング〜
+      </p>
+      <a
+        href="#"
+        class="cta-button"
+        data-i18n="cta"
+        >Chrome ウェブストアで追加（準備中）</a
+      >
+
+      <section>
+        <h2 data-i18n="projectOverview">プロジェクト概要</h2>
+        <p data-i18n="overviewText">
+          TidyGroup-Soloは、プライバシーを最優先に設計されたタブグループ管理・整理ツールです。
+          「こんまり」流の整理術に基づき、今必要な「ときめく」グループだけが残る状態を実現し、ブラウザの視認性と作業効率を劇的に向上させます。
+        </p>
+      </section>
+
+      <section>
+        <h2 data-i18n="features">特徴</h2>
+        <div class="features">
+          <div class="feature-item">
+            <h3 data-i18n="featureMerge">スマート・マージ</h3>
+            <p data-i18n="featureMergeText">
+              重複する複数の保存済みエントリを一つに集約し、最新のURLリストとして統合します。
+            </p>
+          </div>
+          <div class="feature-item">
+            <h3 data-i18n="featureCleanup">一括クレンジング</h3>
+            <p data-i18n="featureCleanupText">
+              中身が空、あるいは長期間更新がない「冬眠中」のグループを一括消去し、リストをクリーンに保ちます。
+            </p>
+          </div>
+          <div class="feature-item">
+            <h3 data-i18n="featureLocal">完全ローカル実行</h3>
+            <p data-i18n="featureLocalText">
+              すべてのデータはブラウザ内に保存されます。外部サーバーへの送信は一切行われず、プライバシーを強力に保護します。
+            </p>
+          </div>
+          <div class="feature-item">
+            <h3 data-i18n="featureM3">Material 3 UI</h3>
+            <p data-i18n="featureM3Text">
+              Google Material 3 (M3) デザインを採用。サイドパネルで作業を邪魔せず、快適に操作できます。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2 data-i18n="install">インストール方法</h2>
+        <ol style="text-align: left; display: inline-block">
+          <li data-i18n="installStep1">
+            リポジトリからソースコードをダウンロードします。
+          </li>
+          <li data-i18n="installStep2">
+            Chromeの拡張機能ページ（chrome://extensions）で「パッケージ化されていない拡張機能を読み込む」を選択します。
+          </li>
+          <li data-i18n="installStep3">
+            `projects/extension` フォルダを選択してインストール完了です。
+          </li>
+        </ol>
+      </section>
+    </main>
+
+    <footer>
+      <p data-i18n="copyright">&copy; 2026 TidyGroup-Solo. All rights reserved.</p>
+    </footer>
+    <script src="i18n.js"></script>
+  </body>
+</html>
