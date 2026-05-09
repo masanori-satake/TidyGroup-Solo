@@ -9,7 +9,7 @@ def build_extension():
         release_dir = "releases"
         if not os.path.exists(release_dir): os.makedirs(release_dir)
         zip_filename = os.path.join(release_dir, f"tidygroup-solo-v{version}.zip")
-        app_dir = os.path.join("projects", "extension")
+        app_dir = os.path.join("projects", "app")
 
         with zipfile.ZipFile(zip_filename, "w", zipfile.ZIP_DEFLATED) as zipf:
             for root, dirs, files in os.walk(app_dir):

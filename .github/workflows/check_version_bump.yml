@@ -22,11 +22,9 @@ jobs:
       - name: Get base version
         id: base_version
         run: |
-          # Try to get version from projects/app or projects/extension in the base branch
+          # Try to get version from projects/app in the base branch
           if git show ${{ github.base_ref }}:projects/app/manifest.json >/dev/null 2>&1; then
             VERSION=$(git show ${{ github.base_ref }}:projects/app/manifest.json | jq -r .version)
-          elif git show ${{ github.base_ref }}:projects/extension/manifest.json >/dev/null 2>&1; then
-            VERSION=$(git show ${{ github.base_ref }}:projects/extension/manifest.json | jq -r .version)
           else
             VERSION="0.0.0"
           fi
