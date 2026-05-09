@@ -28,13 +28,29 @@ def generate_icons(output_dir=None, bg_color=None):
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
-        page = browser.new_page(viewport={"width": 512, "height": 512})
-        page.set_content(f"<!DOCTYPE html><html><body style='margin:0;overflow:hidden;'>{svg_content}</body></html>")
+        context = browser.new_context()
+        page = context.new_page()
 
         for size in [16, 32, 48, 128]:
-            out = os.path.join(output_dir, f"icon{size}.png")
             page.set_viewport_size({"width": size, "height": size})
-            page.wait_for_timeout(100)
+
+            # Embed SVG in a way that it scales perfectly to the viewport
+            # We remove fixed width/height from the SVG tag if they exist and replace with 100%
+            formatted_svg = re.sub(r'<svg[^>]*', lambda m: re.sub(r'\s+(width|height)=["\'][^"\']+["\']', '', m.group(0)), svg_content)
+            formatted_svg = formatted_svg.replace('<svg', '<svg width="100%" height="100%"')
+
+            html_content = f"""
+            <!DOCTYPE html>
+            <html style="margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;">
+            <body style="margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: transparent;">
+                {formatted_svg}
+            </body>
+            </html>
+            """
+            page.set_content(html_content)
+            page.wait_for_timeout(200)
+
+            out = os.path.join(output_dir, f"icon{size}.png")
             page.screenshot(path=out, omit_background=True)
             print(f"Generated {out}")
         browser.close()
