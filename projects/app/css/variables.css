@@ -38,6 +38,8 @@
   --md-sys-typescale-body-medium-size: 14px;
   --md-sys-typescale-body-medium-weight: 400;
 
+  --md-sys-typescale-label-small: 500 11px/16px var(--md-sys-typescale-body-medium-font);
+
   /* Shape */
   --md-sys-shape-corner-small: 4px;
   --md-sys-shape-corner-medium: 12px;

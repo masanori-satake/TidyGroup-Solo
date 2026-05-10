@@ -123,6 +123,10 @@ body {
   font-weight: 500;
 }
 
+.md-typescale-label-small {
+  font: var(--md-sys-typescale-label-small);
+}
+
 .md-typescale-display-large {
   font-size: 57px;
   line-height: 64px;

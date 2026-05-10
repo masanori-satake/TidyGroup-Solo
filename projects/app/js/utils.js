@@ -112,6 +112,20 @@ const TidyCore = {
   async fetchState() {
     try {
       const activeGroups = await chrome.tabGroups.query({});
+      const allTabs = await chrome.tabs.query({});
+      const tabsByGroup = {};
+      allTabs.forEach(t => {
+        if (t.groupId !== -1) {
+          if (!tabsByGroup[t.groupId]) tabsByGroup[t.groupId] = [];
+          tabsByGroup[t.groupId].push(t);
+        }
+      });
+
+      // Enrich active groups with tabs
+      activeGroups.forEach(g => {
+        g.tabs = tabsByGroup[g.id] || [];
+      });
+
       let savedGroups = [];
       if (chrome.tabGroups.getSavedGroups) {
         savedGroups = await chrome.tabGroups.getSavedGroups({});
@@ -148,7 +162,13 @@ const TidyCore = {
    * Analyzes the state and categorizes groups
    */
   analyzeState(activeGroups, savedGroups) {
-    const activeMap = new Map(activeGroups.map(g => [g.id, g]));
+    const savedLocalIds = new Map();
+    savedGroups.forEach(sg => {
+      if (sg.localGroupId !== null) {
+        savedLocalIds.set(sg.localGroupId, sg.savedGuid);
+      }
+    });
+
     const analysis = {
       active: [],
       stashed: [],
@@ -159,21 +179,15 @@ const TidyCore = {
       totalGroups: 0
     };
 
-    const titleCount = new Map();
-    savedGroups.forEach(sg => {
-      const title = sg.title || 'Untitled';
-      titleCount.set(title, (titleCount.get(title) || 0) + 1);
-    });
-
     const threshold = this.settings.staleThreshold || 30;
     const staleLimit = Date.now() - (threshold * 24 * 60 * 60 * 1000);
 
-    savedGroups.forEach(sg => {
-      const isActive = sg.localGroupId !== null && activeMap.has(sg.localGroupId);
-      const tabCount = sg.tabs ? sg.tabs.length : 0;
-      const title = sg.title || 'Untitled';
-
-      const domains = Array.from(new Set((sg.tabs || [])
+    // Helper to extract info from any group (Active or Saved)
+    const normalizeGroup = (g, type) => {
+      const tabs = g.tabs || [];
+      const tabCount = tabs.length;
+      const title = g.title || 'Untitled';
+      const domains = Array.from(new Set(tabs
         .map(t => {
           try {
             return new URL(t.url).hostname;
@@ -184,7 +198,7 @@ const TidyCore = {
         .filter(h => h && !this.isIgnoredUrl(`http://${h}`))))
         .slice(0, 3);
 
-      const hasMobile = (sg.tabs || []).some(t => {
+      const hasMobile = tabs.some(t => {
         try {
           const host = new URL(t.url).hostname;
           return host.startsWith('m.') || host.startsWith('mobile.');
@@ -193,42 +207,74 @@ const TidyCore = {
         }
       });
 
-      const groupInfo = {
-        id: sg.savedGuid,
-        localId: sg.localGroupId,
+      return {
+        id: type === 'saved' ? g.savedGuid : (savedLocalIds.get(g.id) || null),
+        localId: type === 'active' ? g.id : g.localGroupId,
         title: title,
-        color: sg.color,
+        color: g.color,
         tabCount: tabCount,
         domains: domains,
         hasMobile: hasMobile,
-        updateTime: sg.updateTime,
-        isActive: isActive,
-        tabs: sg.tabs || []
+        updateTime: type === 'saved' ? g.updateTime : Date.now(), // Active is always fresh
+        isActive: type === 'active' || (g.localGroupId !== null),
+        tabs: tabs,
+        isSaved: type === 'saved' || savedLocalIds.has(g.id)
       };
+    };
 
+    const allGroups = [];
+    const processedSavedGuids = new Set();
+    const processedLocalIds = new Set();
+
+    // 1. Process Saved Groups
+    savedGroups.forEach(sg => {
+      const info = normalizeGroup(sg, 'saved');
+      allGroups.push(info);
+      processedSavedGuids.add(sg.savedGuid);
+      if (sg.localGroupId !== null) processedLocalIds.add(sg.localGroupId);
+    });
+
+    // 2. Process Active Groups that are NOT saved
+    activeGroups.forEach(ag => {
+      if (!processedLocalIds.has(ag.id)) {
+        const info = normalizeGroup(ag, 'active');
+        allGroups.push(info);
+        processedLocalIds.add(ag.id);
+      }
+    });
+
+    // Title count for mixed check
+    const titleCount = new Map();
+    allGroups.forEach(g => {
+      const title = g.title || 'Untitled';
+      titleCount.set(title, (titleCount.get(title) || 0) + 1);
+    });
+
+    // Final categorization
+    allGroups.forEach(g => {
       analysis.totalGroups++;
-      analysis.totalTabs += tabCount;
+      analysis.totalTabs += g.tabCount;
 
-      if (isActive) {
-        analysis.active.push(groupInfo);
+      if (g.isActive) {
+        analysis.active.push(g);
       } else {
-        analysis.stashed.push(groupInfo);
+        analysis.stashed.push(g);
       }
 
       // Mixed (Duplicates)
-      if (titleCount.get(title) > 1) {
-        analysis.mixed.push(groupInfo);
+      if (titleCount.get(g.title) > 1) {
+        analysis.mixed.push(g);
       }
 
       // Empty
-      const nonIgnoredTabs = (sg.tabs || []).filter(t => !this.isIgnoredUrl(t.url));
-      if (tabCount === 0 || nonIgnoredTabs.length === 0) {
-        analysis.empty.push(groupInfo);
+      const nonIgnoredTabs = g.tabs.filter(t => !this.isIgnoredUrl(t.url));
+      if (g.tabCount === 0 || nonIgnoredTabs.length === 0) {
+        analysis.empty.push(g);
       }
 
-      // Stale
-      if (!isActive && sg.updateTime < staleLimit) {
-        analysis.stale.push(groupInfo);
+      // Stale (Only for inactive saved groups)
+      if (!g.isActive && g.isSaved && g.updateTime < staleLimit) {
+        analysis.stale.push(g);
       }
     });
 
