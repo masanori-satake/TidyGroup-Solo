@@ -91,12 +91,15 @@ const TidyCore = {
    */
   normalizeTitle: function(title) {
     if (!title) return 'Untitled';
-    const trimmed = title.trim();
+    // Remove "🧲" (TabMagnet-Solo marker) and trim
+    let normalized = title.replace('🧲', '').trim();
+    if (!normalized) return 'Untitled';
+
     // Normalize "x tabs" or "x個のタブ" (case-insensitive)
-    if (/^\d+\s*個のタブ$/i.test(trimmed) || /^\d+\s*tabs?$/i.test(trimmed)) {
+    if (/^\d+\s*個のタブ$/i.test(normalized) || /^\d+\s*tabs?$/i.test(normalized)) {
       return 'GENERIC_TAB_GROUP_TITLE';
     }
-    return trimmed;
+    return normalized;
   },
 
   async init() {
@@ -141,15 +144,17 @@ const TidyCore = {
       });
 
       let savedGroups = [];
-      if (chrome.tabGroups.getSavedGroups) {
-        savedGroups = await chrome.tabGroups.getSavedGroups({});
-      } else if (chrome.tabGroups.getAllSavedGroups) {
+      // Prefer getAllSavedGroups (Manifest V3 newer standard)
+      if (typeof chrome.tabGroups.getAllSavedGroups === 'function') {
         savedGroups = await chrome.tabGroups.getAllSavedGroups();
+      } else if (typeof chrome.tabGroups.getSavedGroups === 'function') {
+        savedGroups = await chrome.tabGroups.getSavedGroups({});
       }
 
+      Utils.log(`Fetched ${activeGroups.length} active groups and ${savedGroups.length} saved groups`);
       return { activeGroups, savedGroups };
     } catch (err) {
-      Utils.log(`Error fetching state: ${err.message}`);
+      Utils.log(`Error fetching state: ${err.stack || err.message}`);
       return { activeGroups: [], savedGroups: [] };
     }
   },
@@ -291,10 +296,16 @@ const TidyCore = {
       let isStale = false;
       if (g.isActive && g.tabs.length > 0) {
         // Active groups: stale if ALL tabs are older than staleLimit
-        isStale = g.tabs.every(t => t.lastAccessed && t.lastAccessed < staleLimit);
-      } else if (!g.isActive && g.updateTime < staleLimit) {
+        // If a tab has never been accessed (lastAccessed is undefined), we treat it as very old if it's discarded,
+        // but if it's active/highlighted, it's definitely NOT stale.
+        isStale = g.tabs.every(t => {
+          if (t.active || t.highlighted) return false;
+          const lastAccess = t.lastAccessed || 0;
+          return lastAccess < staleLimit;
+        });
+      } else if (!g.isActive) {
         // Inactive saved groups: use updateTime
-        isStale = true;
+        isStale = g.updateTime < staleLimit;
       }
 
       if (isStale) {
@@ -411,9 +422,28 @@ const TidyCore = {
    * Batch Cleanup: Deletes groups based on criteria
    */
   async batchCleanup(ids) {
+    const { activeGroups, savedGroups } = await this.fetchState();
+
     for (const id of ids) {
-      if (chrome.tabGroups.deleteSavedGroup) {
-        await chrome.tabGroups.deleteSavedGroup(id);
+      if (id.startsWith('local-')) {
+        const localId = parseInt(id.replace('local-', ''));
+        const tabs = await chrome.tabs.query({ groupId: localId });
+        if (tabs.length > 0) {
+          await chrome.tabs.remove(tabs.map(t => t.id));
+        }
+      } else {
+        // It's a savedGuid
+        // Check if it's currently open
+        const sg = savedGroups.find(g => g.savedGuid === id);
+        if (sg && sg.localGroupId !== null) {
+          const tabs = await chrome.tabs.query({ groupId: sg.localGroupId });
+          if (tabs.length > 0) {
+            await chrome.tabs.remove(tabs.map(t => t.id));
+          }
+        }
+        if (chrome.tabGroups.deleteSavedGroup) {
+          await chrome.tabGroups.deleteSavedGroup(id);
+        }
       }
     }
   },

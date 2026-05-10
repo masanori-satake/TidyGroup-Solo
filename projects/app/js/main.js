@@ -194,18 +194,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ageLimit = parseInt(document.getElementById('filter-age').value);
     const tabLimit = parseInt(document.getElementById('filter-tabs').value);
 
-    const candidates = analysis.stashed.filter(g => {
+    // Target both inactive (stashed) and active (but stale or empty) groups
+    const candidates = [...analysis.stashed, ...analysis.stale, ...analysis.empty].filter((g, index, self) => {
+      // De-duplicate
+      if (self.findIndex(t => t.id === g.id) !== index) return false;
+
       const now = Date.now();
-      const ageInDays = (now - g.updateTime) / (1000 * 60 * 60 * 24);
+      let ageInDays = 0;
+
+      if (g.isActive && g.tabs.length > 0) {
+        // For active groups, age is based on the most recently accessed tab
+        const lastAccess = Math.max(...g.tabs.map(t => t.lastAccessed || 0));
+        ageInDays = lastAccess > 0 ? (now - lastAccess) / (1000 * 60 * 60 * 24) : 999;
+      } else {
+        ageInDays = (now - g.updateTime) / (1000 * 60 * 60 * 24);
+      }
 
       // Age filter
       if (ageLimit > 0 && ageInDays < ageLimit) return false;
 
       // Tab count filter
       if (tabLimit === 0) {
-        // Empty only
-        const isEmpty = g.tabCount === 0 || (g.tabCount === 1 && g.tabs[0].url === 'chrome://newtab/');
-        if (!isEmpty) return false;
+        // Empty only (consider chrome://newtab as empty)
+        const nonIgnoredTabs = g.tabs.filter(t => !TidyCore.isIgnoredUrl(t.url));
+        if (nonIgnoredTabs.length > 0) return false;
       } else if (tabLimit === 1) {
         // 1 tab or less
         if (g.tabCount > 1) return false;
