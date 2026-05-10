@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Update Badges
     anomalyBadges.innerHTML = '';
+    if (!TidyCore.hasSavedGroupsCapability()) {
+      addBadge('保存済み取得は未対応', 'info');
+    }
     if (analysis.mixed.length > 0) {
       addBadge('重複あり', 'warning');
       startMergeBtn.disabled = false;
