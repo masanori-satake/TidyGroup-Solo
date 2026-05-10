@@ -182,73 +182,69 @@ const TidyCore = {
         this.lastDiagnostics.errors.push(`Window query error: ${winErr.message}`);
       }
 
-      let savedGroups = [];
+      const savedGroupsMap = new Map();
 
-      // 1. Try new chrome.savedTabGroups API (Chrome 132+)
+      // Attempt to fetch from all potential APIs and merge results
+      const fetchJobs = [];
+
+      // 1. chrome.savedTabGroups API (Chrome 132+)
       if (chrome.savedTabGroups && typeof chrome.savedTabGroups.getAll === 'function') {
-        try {
-          savedGroups = await chrome.savedTabGroups.getAll();
-          this.lastDiagnostics.apis.savedTabGroupsGetAllResult = savedGroups.length;
-        } catch (e) {
+        fetchJobs.push(chrome.savedTabGroups.getAll().then(res => {
+          this.lastDiagnostics.apis.savedTabGroupsGetAllResult = res.length;
+          return res;
+        }).catch(e => {
           this.lastDiagnostics.errors.push(`savedTabGroups.getAll error: ${e.message}`);
-        }
+          return [];
+        }));
       }
 
-      // 2. Try getAllSavedGroups (Legacy experimental standard)
-      if (savedGroups.length === 0 && typeof chrome.tabGroups.getAllSavedGroups === 'function') {
-        try {
-          savedGroups = await chrome.tabGroups.getAllSavedGroups();
-          this.lastDiagnostics.apis.getAllSavedGroupsResult = savedGroups.length;
-        } catch (e) {
+      // 2. chrome.tabGroups.getAllSavedGroups (Standardizing/Standard)
+      if (typeof chrome.tabGroups.getAllSavedGroups === 'function') {
+        fetchJobs.push(chrome.tabGroups.getAllSavedGroups().then(res => {
+          this.lastDiagnostics.apis.getAllSavedGroupsResult = res.length;
+          return res;
+        }).catch(e => {
           this.lastDiagnostics.errors.push(`getAllSavedGroups error: ${e.message}`);
-        }
+          return [];
+        }));
       }
 
-      // If still empty and getSavedGroups exists, try fallback/alternative
-      if (savedGroups.length === 0 && typeof chrome.tabGroups.getSavedGroups === 'function') {
-        try {
-          // Some versions might require a callback or return a promise.
-          // Wrapped in a promise for consistency.
-          const sgAlt = await new Promise((resolve, reject) => {
+      // 3. chrome.tabGroups.getSavedGroups (Experimental/Legacy variations)
+      if (typeof chrome.tabGroups.getSavedGroups === 'function') {
+        const getSavedGroupsWrapped = () => new Promise((resolve) => {
+          try {
+            const result = chrome.tabGroups.getSavedGroups({}, (res) => {
+              if (chrome.runtime.lastError) resolve([]);
+              else resolve(res || []);
+            });
+            if (result instanceof Promise) result.then(resolve).catch(() => resolve([]));
+          } catch (err) {
             try {
-              const result = chrome.tabGroups.getSavedGroups({}, (res) => {
-                if (chrome.runtime.lastError) {
-                  reject(chrome.runtime.lastError);
-                } else {
-                  resolve(res);
-                }
+              const resultNoArgs = chrome.tabGroups.getSavedGroups((res) => {
+                if (chrome.runtime.lastError) resolve([]);
+                else resolve(res || []);
               });
-              // If it returns a promise (MV3), result will be a promise.
-              if (result instanceof Promise) {
-                result.then(resolve).catch(reject);
-              }
-            } catch (err) {
-              // If calling with {} fails, try without arguments
-              try {
-                const resultNoArgs = chrome.tabGroups.getSavedGroups((res) => {
-                  if (chrome.runtime.lastError) {
-                    reject(chrome.runtime.lastError);
-                  } else {
-                    resolve(res);
-                  }
-                });
-                if (resultNoArgs instanceof Promise) {
-                  resultNoArgs.then(resolve).catch(reject);
-                }
-              } catch (innerErr) {
-                reject(innerErr);
-              }
+              if (resultNoArgs instanceof Promise) resultNoArgs.then(resolve).catch(() => resolve([]));
+            } catch (innerErr) {
+              resolve([]);
             }
-          });
-
-          this.lastDiagnostics.apis.getSavedGroupsResult = sgAlt ? sgAlt.length : 0;
-          if (sgAlt && sgAlt.length > 0) {
-            savedGroups = sgAlt;
           }
-        } catch (e) {
-          this.lastDiagnostics.errors.push(`getSavedGroups error: ${e.message}`);
-        }
+        });
+        fetchJobs.push(getSavedGroupsWrapped().then(res => {
+          this.lastDiagnostics.apis.getSavedGroupsResult = res.length;
+          return res;
+        }));
       }
+
+      const jobResults = await Promise.all(fetchJobs);
+      jobResults.flat().forEach(g => {
+        const guid = g.savedGuid || g.id;
+        if (guid) {
+          savedGroupsMap.set(guid, g);
+        }
+      });
+
+      const savedGroups = Array.from(savedGroupsMap.values());
 
       Utils.log(`Fetched ${activeGroups.length} active groups and ${savedGroups.length} saved groups`);
       return { activeGroups, savedGroups };
