@@ -197,7 +197,8 @@ body {
   max-width: 400px;
   padding: 0;
   overflow: hidden;
-  height: 90vh;
+  height: auto;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
 }

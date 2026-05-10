@@ -92,6 +92,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="settings-tab" data-tab="about" title="About">
           <span class="material-symbols-outlined">info</span>
         </div>
+        <div class="settings-tab dev-tab" data-tab="dev" title="開発" style="display: none;">
+          <span class="material-symbols-outlined">terminal</span>
+        </div>
       </div>
       <div class="settings-content" id="settings-content-pane">
         <!-- Content will be injected here -->
@@ -221,38 +224,95 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else if (tabName === 'about') {
         const manifest = chrome.runtime.getManifest();
         contentPane.innerHTML = `
-          <div style="text-align: center; padding-top: 8px;">
-            <img src="icons/icon128.png" style="width: 64px; height: 64px; margin-bottom: 12px;">
-            <div class="md-typescale-title-medium">TidyGroup-Solo</div>
-            <div class="md-typescale-body-small" style="margin-bottom: 16px;">Version ${manifest.version}</div>
-
-            <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 24px;">
-              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-outline-variant); padding-bottom: 8px;">
-                <span class="md-typescale-label-large">放置閾値</span>
-                <span class="md-typescale-body-medium">${TidyCore.settings.staleThreshold} days</span>
-              </div>
+          <div style="padding-top: 8px;">
+            <div style="margin-bottom: 20px;">
+              <div class="md-typescale-label-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">バージョン</div>
+              <div id="about-version" class="md-typescale-title-large" style="cursor: default; user-select: none;">v${manifest.version}</div>
             </div>
 
-            <div class="md-typescale-body-medium" style="text-align: left; margin-bottom: 24px; color: var(--md-sys-color-on-surface-variant);">
-              大量に蓄積し、重複したタブグループをスマートに整理・クレンジングするローカル完結型Chrome拡張機能。
+            <div style="margin-bottom: 20px;">
+              <div class="md-typescale-label-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">放置期間閾値</div>
+              <div class="md-typescale-title-large">${TidyCore.settings.staleThreshold}</div>
             </div>
 
-            <div style="text-align: left; border-top: 1px solid var(--md-sys-color-outline-variant); padding-top: 16px;">
-              <div class="md-typescale-label-large" style="margin-bottom: 8px; color: var(--md-sys-color-primary);">ポリシー</div>
-              <div class="md-typescale-body-small" style="margin-bottom: 12px;">
-                本拡張機能は、ユーザーのプライバシーを最優先に設計されており、外部サーバーとの通信は一切行わず、すべてのデータはローカルで処理されます。
-              </div>
-              <div style="display: flex; flex-direction: column; gap: 4px;">
-                <a href="#" class="md-typescale-body-small" style="color: var(--md-sys-color-primary); text-decoration: none;">プライバシーポリシー</a>
-                <a href="#" class="md-typescale-body-small" style="color: var(--md-sys-color-primary); text-decoration: none;">利用規約</a>
-              </div>
+            <div style="margin-bottom: 24px;">
+              <div class="md-typescale-label-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">開発者</div>
+              <div class="md-typescale-title-large">Masanori SATAKE</div>
             </div>
 
-            <div class="md-typescale-body-small" style="margin-top: 32px; opacity: 0.7;">
-              © 2026 Solo Series
+            <div class="md-typescale-body-medium" style="margin-bottom: 24px; line-height: 1.6;">
+              TidyGroup-Solo は、プライバシー重視のタブグループ管理ツールです。データはブラウザ内に保存され、外部送信は一切行われません。GitHub Actions による依存関係の検証により、高い透明性と安全性を維持しています。
+              <br><br>
+              このプロジェクトでは、Google によるオープンソースのデザインシステムである Material Design 3 を使用しています。
+            </div>
+
+            <div class="md-typescale-body-small" style="font-style: italic; color: var(--md-sys-color-on-surface-variant); line-height: 1.5;">
+              【免責事項】 本ソフトウェアは個人開発によるオープンソースプロジェクトであり、無保証です。利用により生じたいかなる損害についても、開発者は一切の責任を負いません。自己責任でご利用ください。
             </div>
           </div>
         `;
+
+        const versionEl = contentPane.querySelector('#about-version');
+        versionEl.addEventListener('click', (e) => {
+          if (e.detail === 3) {
+            const devTab = dialog.querySelector('.dev-tab');
+            if (devTab) {
+              devTab.style.display = 'flex';
+              Utils.UI.showToast('開発者モードが有効になりました');
+            }
+          }
+        });
+      } else if (tabName === 'dev') {
+        contentPane.innerHTML = `
+          <div class="settings-section">
+            <div class="settings-section-title md-typescale-title-small">デバッグデータ出力</div>
+            <p class="md-typescale-body-small" style="margin-bottom: 16px;">
+              現在のタブグループの状態や設定、分析結果をJSON形式で出力します。不具合報告の際にご活用ください。
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <button id="btn-dev-copy" class="md-button md-button--tonal" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span class="material-symbols-outlined" style="font-size: 18px;">content_copy</span>
+                <span class="md-typescale-label-medium">JSONをクリップボードにコピー</span>
+              </button>
+              <button id="btn-dev-file" class="md-button md-button--tonal" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span class="material-symbols-outlined" style="font-size: 18px;">download</span>
+                <span class="md-typescale-label-medium">JSONをファイルに保存</span>
+              </button>
+            </div>
+          </div>
+        `;
+
+        async function getDebugInfo() {
+          const { activeGroups, savedGroups } = await TidyCore.fetchState();
+          const analysis = TidyCore.analyzeState(activeGroups, savedGroups);
+          const storage = await chrome.storage.local.get(null);
+
+          return {
+            timestamp: new Date().toISOString(),
+            manifestVersion: chrome.runtime.getManifest().version,
+            activeGroups,
+            savedGroups,
+            analysis,
+            storage
+          };
+        }
+
+        contentPane.querySelector('#btn-dev-copy').addEventListener('click', async () => {
+          const info = await getDebugInfo();
+          await navigator.clipboard.writeText(JSON.stringify(info, null, 2));
+          Utils.UI.showToast('デバッグ情報をコピーしました');
+        });
+
+        contentPane.querySelector('#btn-dev-file').addEventListener('click', async () => {
+          const info = await getDebugInfo();
+          const blob = new Blob([JSON.stringify(info, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `tidygroup-debug-${new Date().getTime()}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+        });
       }
     }
 
