@@ -520,8 +520,19 @@ const TidyCore = {
     if (duplicateGroups.length <= 1) return;
 
     const activeDuplicates = duplicateGroups.filter(group => group.localId != null);
+    const savedDuplicates = savedGroups.filter(sg => {
+      return this.normalizeTitle(sg.title) === normalizedTarget;
+    });
 
-    if (activeDuplicates.length >= 2) {
+    const removeSavedGroup = async (guid) => {
+      if (chrome.savedTabGroups && typeof chrome.savedTabGroups.remove === 'function') {
+        await chrome.savedTabGroups.remove(guid);
+      } else if (chrome.tabGroups.deleteSavedGroup) {
+        await chrome.tabGroups.deleteSavedGroup(guid);
+      }
+    };
+
+    if (activeDuplicates.length >= 1 && savedDuplicates.length >= 1) {
       const sortedActive = [...activeDuplicates].sort((a, b) => {
         const accessDiff = this.getGroupLastAccessTime(b) - this.getGroupLastAccessTime(a);
         if (accessDiff !== 0) return accessDiff;
@@ -529,17 +540,45 @@ const TidyCore = {
       });
 
       const targetGroup = sortedActive[0];
-
-      for (const sourceGroup of sortedActive.slice(1)) {
-        const tabIds = (sourceGroup.tabs || [])
+      const targetSavedGuid = targetGroup.isSaved && !String(targetGroup.id).startsWith('local-')
+        ? targetGroup.id
+        : null;
+      const allSourceTabIds = sortedActive.slice(1).flatMap(sourceGroup =>
+        (sourceGroup.tabs || [])
           .map(tab => tab.id)
-          .filter(tabId => Number.isInteger(tabId));
+          .filter(tabId => Number.isInteger(tabId))
+      );
 
-        if (tabIds.length > 0) {
-          await chrome.tabs.group({
-            groupId: targetGroup.localId,
-            tabIds
-          });
+      if (allSourceTabIds.length > 0) {
+        await chrome.tabs.group({
+          groupId: targetGroup.localId,
+          tabIds: allSourceTabIds
+        });
+      }
+
+      const activeUrls = new Set(
+        activeDuplicates.flatMap(group => group.tabs || [])
+          .map(tab => tab.url)
+          .filter(url => url && !this.isIgnoredUrl(url))
+      );
+      const savedOnlyUrls = Array.from(new Set(
+        savedDuplicates.flatMap(group => group.tabs || [])
+          .map(tab => tab.url)
+          .filter(url => url && !this.isIgnoredUrl(url) && !activeUrls.has(url))
+      ));
+
+      const newTabs = await Promise.all(savedOnlyUrls.map(url => chrome.tabs.create({ url, active: false })));
+      if (newTabs.length > 0) {
+        await chrome.tabs.group({
+          groupId: targetGroup.localId,
+          tabIds: newTabs.map(tab => tab.id)
+        });
+      }
+
+      for (const sg of savedDuplicates) {
+        const guid = sg.savedGuid || sg.id;
+        if (guid && guid !== targetSavedGuid) {
+          await removeSavedGroup(guid);
         }
       }
 
@@ -550,9 +589,35 @@ const TidyCore = {
       return;
     }
 
-    const duplicates = savedGroups.filter(sg => {
-      return this.normalizeTitle(sg.title) === normalizedTarget;
-    });
+    if (activeDuplicates.length >= 2) {
+      const sortedActive = [...activeDuplicates].sort((a, b) => {
+        const accessDiff = this.getGroupLastAccessTime(b) - this.getGroupLastAccessTime(a);
+        if (accessDiff !== 0) return accessDiff;
+        return b.tabCount - a.tabCount;
+      });
+
+      const targetGroup = sortedActive[0];
+      const allSourceTabIds = sortedActive.slice(1).flatMap(sourceGroup =>
+        (sourceGroup.tabs || [])
+          .map(tab => tab.id)
+          .filter(tabId => Number.isInteger(tabId))
+      );
+
+      if (allSourceTabIds.length > 0) {
+        await chrome.tabs.group({
+          groupId: targetGroup.localId,
+          tabIds: allSourceTabIds
+        });
+      }
+
+      await chrome.tabGroups.update(targetGroup.localId, {
+        title: targetGroup.title,
+        color: targetGroup.color
+      });
+      return;
+    }
+
+    const duplicates = savedDuplicates;
 
     if (duplicates.length <= 1) return;
 
@@ -616,11 +681,7 @@ const TidyCore = {
     for (const sg of duplicates) {
       const guid = sg.savedGuid || sg.id;
       if (guid !== targetGuid) {
-        if (chrome.savedTabGroups && typeof chrome.savedTabGroups.remove === 'function') {
-          await chrome.savedTabGroups.remove(guid);
-        } else if (chrome.tabGroups.deleteSavedGroup) {
-          await chrome.tabGroups.deleteSavedGroup(guid);
-        }
+        await removeSavedGroup(guid);
       }
     }
 
