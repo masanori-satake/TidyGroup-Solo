@@ -91,6 +91,52 @@ const TidyCore = {
     windowStats: []
   },
 
+  getSavedGroupsSupport() {
+    const support = {
+      supported: false,
+      source: null,
+      reason: ''
+    };
+
+    if (chrome.savedTabGroups && typeof chrome.savedTabGroups.getAll === 'function') {
+      support.supported = true;
+      support.source = 'chrome.savedTabGroups';
+      support.reason = 'Experimental saved tab groups namespace is available in this runtime.';
+      return support;
+    }
+
+    if (typeof chrome.tabGroups.getAllSavedGroups === 'function') {
+      support.supported = true;
+      support.source = 'chrome.tabGroups.getAllSavedGroups';
+      support.reason = 'Saved group listing method is available in this runtime.';
+      return support;
+    }
+
+    if (typeof chrome.tabGroups.getSavedGroups === 'function') {
+      support.supported = true;
+      support.source = 'chrome.tabGroups.getSavedGroups';
+      support.reason = 'Legacy saved group listing method is available in this runtime.';
+      return support;
+    }
+
+    support.reason = 'Chrome extension API does not expose saved tab group enumeration in this runtime.';
+    return support;
+  },
+
+  hasSavedGroupsCapability() {
+    return this.getSavedGroupsSupport().supported;
+  },
+
+  getGroupLastAccessTime(group) {
+    if (!group || !Array.isArray(group.tabs) || group.tabs.length === 0) {
+      return 0;
+    }
+
+    return group.tabs.reduce((max, tab) => {
+      return Math.max(max, tab.lastAccessed || 0);
+    }, 0);
+  },
+
   /**
    * Helper to normalize titles for duplicate detection and grouping.
    * e.g., "1個のタブ", "2個のタブ" -> "GENERIC_TAB_GROUP_TITLE"
@@ -133,6 +179,8 @@ const TidyCore = {
    * Fetches the current state of tab groups (Active and Saved)
    */
   async fetchState() {
+    const savedGroupsSupport = this.getSavedGroupsSupport();
+
     // Initialize diagnostics
     this.lastDiagnostics = {
       browser: {
@@ -141,6 +189,9 @@ const TidyCore = {
         platform: navigator.platform
       },
       apis: {
+        savedGroupsSupported: savedGroupsSupport.supported,
+        savedGroupsSource: savedGroupsSupport.source,
+        savedGroupsReason: savedGroupsSupport.reason,
         savedTabGroupsGetAll: typeof (chrome.savedTabGroups && chrome.savedTabGroups.getAll),
         getAllSavedGroups: typeof chrome.tabGroups.getAllSavedGroups,
         getSavedGroups: typeof chrome.tabGroups.getSavedGroups,
@@ -184,56 +235,58 @@ const TidyCore = {
 
       const savedGroupsMap = new Map();
 
-      // Attempt to fetch from all potential APIs and merge results
       const fetchJobs = [];
 
-      // 1. chrome.savedTabGroups API (Chrome 132+)
-      if (chrome.savedTabGroups && typeof chrome.savedTabGroups.getAll === 'function') {
-        fetchJobs.push(chrome.savedTabGroups.getAll().then(res => {
-          this.lastDiagnostics.apis.savedTabGroupsGetAllResult = res.length;
-          return res;
-        }).catch(e => {
-          this.lastDiagnostics.errors.push(`savedTabGroups.getAll error: ${e.message}`);
-          return [];
-        }));
-      }
+      if (!savedGroupsSupport.supported) {
+        this.lastDiagnostics.errors.push(
+          'Saved tab groups are not enumerable from this Chrome extension runtime. The official chrome.tabGroups extension API currently exposes only active-group methods such as get/query/update/move.'
+        );
+      } else {
+        if (chrome.savedTabGroups && typeof chrome.savedTabGroups.getAll === 'function') {
+          fetchJobs.push(chrome.savedTabGroups.getAll().then(res => {
+            this.lastDiagnostics.apis.savedTabGroupsGetAllResult = res.length;
+            return res;
+          }).catch(e => {
+            this.lastDiagnostics.errors.push(`savedTabGroups.getAll error: ${e.message}`);
+            return [];
+          }));
+        }
 
-      // 2. chrome.tabGroups.getAllSavedGroups (Standardizing/Standard)
-      if (typeof chrome.tabGroups.getAllSavedGroups === 'function') {
-        fetchJobs.push(chrome.tabGroups.getAllSavedGroups().then(res => {
-          this.lastDiagnostics.apis.getAllSavedGroupsResult = res.length;
-          return res;
-        }).catch(e => {
-          this.lastDiagnostics.errors.push(`getAllSavedGroups error: ${e.message}`);
-          return [];
-        }));
-      }
+        if (typeof chrome.tabGroups.getAllSavedGroups === 'function') {
+          fetchJobs.push(chrome.tabGroups.getAllSavedGroups().then(res => {
+            this.lastDiagnostics.apis.getAllSavedGroupsResult = res.length;
+            return res;
+          }).catch(e => {
+            this.lastDiagnostics.errors.push(`getAllSavedGroups error: ${e.message}`);
+            return [];
+          }));
+        }
 
-      // 3. chrome.tabGroups.getSavedGroups (Experimental/Legacy variations)
-      if (typeof chrome.tabGroups.getSavedGroups === 'function') {
-        const getSavedGroupsWrapped = () => new Promise((resolve) => {
-          try {
-            const result = chrome.tabGroups.getSavedGroups({}, (res) => {
-              if (chrome.runtime.lastError) resolve([]);
-              else resolve(res || []);
-            });
-            if (result instanceof Promise) result.then(resolve).catch(() => resolve([]));
-          } catch (err) {
+        if (typeof chrome.tabGroups.getSavedGroups === 'function') {
+          const getSavedGroupsWrapped = () => new Promise((resolve) => {
             try {
-              const resultNoArgs = chrome.tabGroups.getSavedGroups((res) => {
+              const result = chrome.tabGroups.getSavedGroups({}, (res) => {
                 if (chrome.runtime.lastError) resolve([]);
                 else resolve(res || []);
               });
-              if (resultNoArgs instanceof Promise) resultNoArgs.then(resolve).catch(() => resolve([]));
-            } catch (innerErr) {
-              resolve([]);
+              if (result instanceof Promise) result.then(resolve).catch(() => resolve([]));
+            } catch (err) {
+              try {
+                const resultNoArgs = chrome.tabGroups.getSavedGroups((res) => {
+                  if (chrome.runtime.lastError) resolve([]);
+                  else resolve(res || []);
+                });
+                if (resultNoArgs instanceof Promise) resultNoArgs.then(resolve).catch(() => resolve([]));
+              } catch (innerErr) {
+                resolve([]);
+              }
             }
-          }
-        });
-        fetchJobs.push(getSavedGroupsWrapped().then(res => {
-          this.lastDiagnostics.apis.getSavedGroupsResult = res.length;
-          return res;
-        }));
+          });
+          fetchJobs.push(getSavedGroupsWrapped().then(res => {
+            this.lastDiagnostics.apis.getSavedGroupsResult = res.length;
+            return res;
+          }));
+        }
       }
 
       const jobResults = await Promise.all(fetchJobs);
@@ -457,12 +510,114 @@ const TidyCore = {
    * excludes chrome://newtab/.
    */
   async smartMerge(targetTitle) {
-    const { savedGroups } = await this.fetchState();
+    const { activeGroups, savedGroups } = await this.fetchState();
+    const analysis = this.analyzeState(activeGroups, savedGroups);
     const normalizedTarget = this.normalizeTitle(targetTitle);
+    const duplicateGroups = analysis.mixed.filter(group => {
+      return this.normalizeTitle(group.title) === normalizedTarget;
+    });
 
-    const duplicates = savedGroups.filter(sg => {
+    if (duplicateGroups.length <= 1) return;
+
+    const activeDuplicates = duplicateGroups.filter(group => group.localId != null);
+    const savedDuplicates = savedGroups.filter(sg => {
       return this.normalizeTitle(sg.title) === normalizedTarget;
     });
+
+    const removeSavedGroup = async (guid) => {
+      if (chrome.savedTabGroups && typeof chrome.savedTabGroups.remove === 'function') {
+        await chrome.savedTabGroups.remove(guid);
+      } else if (chrome.tabGroups.deleteSavedGroup) {
+        await chrome.tabGroups.deleteSavedGroup(guid);
+      }
+    };
+
+    if (activeDuplicates.length >= 1 && savedDuplicates.length >= 1) {
+      const sortedActive = [...activeDuplicates].sort((a, b) => {
+        const accessDiff = this.getGroupLastAccessTime(b) - this.getGroupLastAccessTime(a);
+        if (accessDiff !== 0) return accessDiff;
+        return b.tabCount - a.tabCount;
+      });
+
+      const targetGroup = sortedActive[0];
+      const targetSavedGuid = targetGroup.isSaved && !String(targetGroup.id).startsWith('local-')
+        ? targetGroup.id
+        : null;
+      const allSourceTabIds = sortedActive.slice(1).flatMap(sourceGroup =>
+        (sourceGroup.tabs || [])
+          .map(tab => tab.id)
+          .filter(tabId => Number.isInteger(tabId))
+      );
+
+      if (allSourceTabIds.length > 0) {
+        await chrome.tabs.group({
+          groupId: targetGroup.localId,
+          tabIds: allSourceTabIds
+        });
+      }
+
+      const activeUrls = new Set(
+        activeDuplicates.flatMap(group => group.tabs || [])
+          .map(tab => tab.url)
+          .filter(url => url && !this.isIgnoredUrl(url))
+      );
+      const savedOnlyUrls = Array.from(new Set(
+        savedDuplicates.flatMap(group => group.tabs || [])
+          .map(tab => tab.url)
+          .filter(url => url && !this.isIgnoredUrl(url) && !activeUrls.has(url))
+      ));
+
+      const newTabs = await Promise.all(savedOnlyUrls.map(url => chrome.tabs.create({ url, active: false })));
+      if (newTabs.length > 0) {
+        await chrome.tabs.group({
+          groupId: targetGroup.localId,
+          tabIds: newTabs.map(tab => tab.id)
+        });
+      }
+
+      for (const sg of savedDuplicates) {
+        const guid = sg.savedGuid || sg.id;
+        if (guid && guid !== targetSavedGuid) {
+          await removeSavedGroup(guid);
+        }
+      }
+
+      await chrome.tabGroups.update(targetGroup.localId, {
+        title: targetGroup.title,
+        color: targetGroup.color
+      });
+      return;
+    }
+
+    if (activeDuplicates.length >= 2) {
+      const sortedActive = [...activeDuplicates].sort((a, b) => {
+        const accessDiff = this.getGroupLastAccessTime(b) - this.getGroupLastAccessTime(a);
+        if (accessDiff !== 0) return accessDiff;
+        return b.tabCount - a.tabCount;
+      });
+
+      const targetGroup = sortedActive[0];
+      const allSourceTabIds = sortedActive.slice(1).flatMap(sourceGroup =>
+        (sourceGroup.tabs || [])
+          .map(tab => tab.id)
+          .filter(tabId => Number.isInteger(tabId))
+      );
+
+      if (allSourceTabIds.length > 0) {
+        await chrome.tabs.group({
+          groupId: targetGroup.localId,
+          tabIds: allSourceTabIds
+        });
+      }
+
+      await chrome.tabGroups.update(targetGroup.localId, {
+        title: targetGroup.title,
+        color: targetGroup.color
+      });
+      return;
+    }
+
+    const duplicates = savedDuplicates;
 
     if (duplicates.length <= 1) return;
 
@@ -526,11 +681,7 @@ const TidyCore = {
     for (const sg of duplicates) {
       const guid = sg.savedGuid || sg.id;
       if (guid !== targetGuid) {
-        if (chrome.savedTabGroups && typeof chrome.savedTabGroups.remove === 'function') {
-          await chrome.savedTabGroups.remove(guid);
-        } else if (chrome.tabGroups.deleteSavedGroup) {
-          await chrome.tabGroups.deleteSavedGroup(guid);
-        }
+        await removeSavedGroup(guid);
       }
     }
 

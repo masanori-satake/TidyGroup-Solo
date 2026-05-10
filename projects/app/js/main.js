@@ -31,8 +31,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateCard('card-mixed', analysis.mixed.length);
     updateCard('card-stale', analysis.stale.length);
     updateCard('card-empty', analysis.empty.length);
+    renderCapabilityNote();
 
     renderActiveList(analysis.active);
+  }
+
+  function renderCapabilityNote() {
+    const note = document.getElementById('capability-note');
+    if (!note) return;
+
+    if (TidyCore.hasSavedGroupsCapability()) {
+      note.style.display = 'none';
+      note.innerHTML = '';
+      return;
+    }
+
+    note.style.display = 'block';
+    note.innerHTML = `
+      <div class="md-typescale-title-small" style="margin-bottom: 8px; color: var(--md-sys-color-primary);">保存済みタブグループについて</div>
+      <div class="md-typescale-body-medium" style="line-height: 1.6;">
+        現在の Chrome 拡張機能 API では、保存済みタブグループ一覧の取得メソッドが公開されていません。
+        このため TidyGroup-Solo は、今のランタイムではアクティブなタブグループのみを分析対象にします。
+        デバッグ JSON にもこの制約を出力します。
+      </div>
+    `;
   }
 
   function renderActiveList(activeGroups) {
