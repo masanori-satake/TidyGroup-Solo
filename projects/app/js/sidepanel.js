@@ -79,11 +79,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dialog = document.createElement('div');
     dialog.className = 'md-dialog md-dialog--settings';
     dialog.innerHTML = `
-      <div class="settings-header" style="display: flex; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
-        <button class="md-button md-button--text btn-close-settings" style="padding: 8px; margin-right: 8px;">
+      <div class="settings-header" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+        <div class="md-typescale-title-medium">設定</div>
+        <button class="md-button md-button--text btn-close-settings" style="padding: 8px;">
           <span class="material-symbols-outlined">close</span>
         </button>
-        <div class="md-typescale-title-medium">設定</div>
       </div>
       <div class="settings-tabs">
         <div class="settings-tab active" data-tab="general" title="一般">
@@ -225,22 +225,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         const manifest = chrome.runtime.getManifest();
         contentPane.innerHTML = `
           <div style="padding-top: 8px;">
-            <div style="margin-bottom: 20px;">
-              <div class="md-typescale-label-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">バージョン</div>
-              <div id="about-version" class="md-typescale-title-large" style="cursor: default; user-select: none;">v${manifest.version}</div>
+            <div style="margin-bottom: 8px;">
+              <div class="md-typescale-label-small" style="color: var(--md-sys-color-on-surface-variant);">バージョン</div>
+              <div id="about-version" class="md-typescale-title-medium" style="cursor: default; user-select: none;">v${manifest.version}</div>
             </div>
 
-            <div style="margin-bottom: 20px;">
-              <div class="md-typescale-label-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">放置期間閾値</div>
-              <div class="md-typescale-title-large">${TidyCore.settings.staleThreshold} 日間</div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+              <div>
+                <div class="md-typescale-label-small" style="color: var(--md-sys-color-on-surface-variant);">放置期間閾値</div>
+                <div class="md-typescale-title-medium">${TidyCore.settings.staleThreshold} 日間</div>
+              </div>
             </div>
 
-            <div style="margin-bottom: 24px;">
-              <div class="md-typescale-label-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">開発者</div>
-              <div class="md-typescale-title-large">Masanori SATAKE</div>
+            <div style="margin-bottom: 12px;">
+              <div class="md-typescale-label-small" style="color: var(--md-sys-color-on-surface-variant);">開発者</div>
+              <div class="md-typescale-title-medium">Masanori SATAKE</div>
             </div>
 
-            <div class="md-typescale-body-medium" style="margin-bottom: 24px; line-height: 1.6;">
+            <div class="md-typescale-body-small" style="margin-bottom: 12px; line-height: 1.5; color: var(--md-sys-color-on-surface);">
               TidyGroup-Solo は、プライバシー重視のタブグループ管理ツールです。データはブラウザ内に保存され、外部送信は一切行われません。GitHub Actions による依存関係の検証により、高い透明性と安全性を維持しています。
               <br><br>
               このプロジェクトでは、Google によるオープンソースのデザインシステムである Material Design 3 を使用しています。
