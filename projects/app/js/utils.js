@@ -25,6 +25,55 @@ const Utils = {
    */
   log: function(msg) {
     console.log(`[TidyGroup] ${msg}`);
+  },
+
+  /**
+   * UI Helpers for Solo series consistency
+   */
+  UI: {
+    showToast: function(message, duration = 3000) {
+      const toast = document.createElement('div');
+      toast.className = 'md-toast';
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      // Trigger reflow for animation
+      toast.offsetHeight;
+      toast.classList.add('visible');
+
+      setTimeout(() => {
+        toast.classList.remove('visible');
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    },
+
+    showConfirm: function(title, message, onConfirm) {
+      const overlay = document.createElement('div');
+      overlay.className = 'md-dialog-overlay';
+
+      const dialog = document.createElement('div');
+      dialog.className = 'md-dialog';
+      dialog.innerHTML = `
+        <div class="md-dialog__title md-typescale-title-large">${title}</div>
+        <div class="md-dialog__content md-typescale-body-medium">${message}</div>
+        <div class="md-dialog__actions">
+          <button class="md-button md-button--text btn-cancel">キャンセル</button>
+          <button class="md-button md-button--text btn-confirm">実行</button>
+        </div>
+      `;
+
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+
+      dialog.querySelector('.btn-cancel').addEventListener('click', () => {
+        overlay.remove();
+      });
+
+      dialog.querySelector('.btn-confirm').addEventListener('click', () => {
+        onConfirm();
+        overlay.remove();
+      });
+    }
   }
 };
 
@@ -32,15 +81,37 @@ const Utils = {
  * Core logic for TidyGroup-Solo
  */
 const TidyCore = {
+  settings: {
+    staleThreshold: 30
+  },
+
+  async init() {
+    await this.loadSettings();
+  },
+
+  async loadSettings() {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      const data = await chrome.storage.local.get('settings');
+      if (data.settings) {
+        this.settings = { ...this.settings, ...data.settings };
+      }
+    }
+    return this.settings;
+  },
+
+  async saveSettings(settings) {
+    this.settings = { ...this.settings, ...settings };
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      await chrome.storage.local.set({ settings: this.settings });
+    }
+  },
+
   /**
    * Fetches the current state of tab groups (Active and Saved)
    */
   async fetchState() {
     try {
       const activeGroups = await chrome.tabGroups.query({});
-      // Note: getAllSavedGroups might be under a different name depending on Chrome version
-      // but according to functional_spec.md, it's getAllSavedGroups.
-      // In latest Chrome it's often chrome.tabGroups.getSavedGroups.
       let savedGroups = [];
       if (chrome.tabGroups.getSavedGroups) {
         savedGroups = await chrome.tabGroups.getSavedGroups({});
@@ -52,6 +123,24 @@ const TidyCore = {
     } catch (e) {
       Utils.log(`Error fetching state: ${e.message}`);
       return { activeGroups: [], savedGroups: [] };
+    }
+  },
+
+  /**
+   * Helper to check if a URL should be filtered out/ignored
+   */
+  isIgnoredUrl: function(url) {
+    if (!url) return true;
+    const ignoredProtocols = ['chrome:', 'edge:', 'about:', 'chrome-extension:', 'chrome-search:'];
+    const ignoredHosts = ['newtab', 'localhost', '127.0.0.1'];
+
+    try {
+      const parsed = new URL(url);
+      if (ignoredProtocols.includes(parsed.protocol)) return true;
+      if (ignoredHosts.includes(parsed.hostname)) return true;
+      return false;
+    } catch (e) {
+      return true;
     }
   },
 
@@ -76,6 +165,9 @@ const TidyCore = {
       titleCount.set(title, (titleCount.get(title) || 0) + 1);
     });
 
+    const threshold = this.settings.staleThreshold || 30;
+    const staleLimit = Date.now() - (threshold * 24 * 60 * 60 * 1000);
+
     savedGroups.forEach(sg => {
       const isActive = sg.localGroupId !== null && activeMap.has(sg.localGroupId);
       const tabCount = sg.tabs ? sg.tabs.length : 0;
@@ -89,7 +181,7 @@ const TidyCore = {
             return null;
           }
         })
-        .filter(h => h && h !== 'newtab' && h !== 'localhost')))
+        .filter(h => h && !this.isIgnoredUrl(`http://${h}`))))
         .slice(0, 3);
 
       const hasMobile = (sg.tabs || []).some(t => {
@@ -102,7 +194,7 @@ const TidyCore = {
       });
 
       const groupInfo = {
-        id: sg.savedGuid, // Saved groups use GUID
+        id: sg.savedGuid,
         localId: sg.localGroupId,
         title: title,
         color: sg.color,
@@ -129,13 +221,13 @@ const TidyCore = {
       }
 
       // Empty
-      if (tabCount === 0 || (tabCount === 1 && sg.tabs[0].url === 'chrome://newtab/')) {
+      const nonIgnoredTabs = (sg.tabs || []).filter(t => !this.isIgnoredUrl(t.url));
+      if (tabCount === 0 || nonIgnoredTabs.length === 0) {
         analysis.empty.push(groupInfo);
       }
 
-      // Stale (Over 30 days)
-      const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
-      if (!isActive && sg.updateTime < thirtyDaysAgo) {
+      // Stale
+      if (!isActive && sg.updateTime < staleLimit) {
         analysis.stale.push(groupInfo);
       }
     });
@@ -147,28 +239,23 @@ const TidyCore = {
    * Calculates Health Score (0-100)
    */
   calculateScore(analysis) {
-    if (analysis.totalGroups === 0) return 100;
+    if (analysis.totalGroups === 0) return 100.0;
 
-    // Deduct points for duplicates, stale, and empty groups
-    // This is a simple heuristic
-    let score = 100;
+    const unhealthyIds = new Set([
+      ...analysis.mixed.map(g => g.id),
+      ...analysis.stale.map(g => g.id),
+      ...analysis.empty.map(g => g.id)
+    ]);
 
-    // Duplicates are bad (-10 per extra copy)
-    const uniqueMixedTitles = new Set(analysis.mixed.map(g => g.title)).size;
-    const extraCopies = analysis.mixed.length - uniqueMixedTitles;
-    score -= extraCopies * 10;
-
-    // Stale groups (-5 per group)
-    score -= analysis.stale.length * 5;
-
-    // Empty groups (-5 per group)
-    score -= analysis.empty.length * 5;
-
-    return Math.max(0, Math.min(100, score));
+    const healthyCount = analysis.totalGroups - unhealthyIds.size;
+    const score = (healthyCount / analysis.totalGroups) * 100;
+    return parseFloat(score.toFixed(1));
   },
 
   /**
-   * Smart Merge: Consolidates duplicate groups into one Active group
+   * Smart Merge: Consolidates duplicate groups.
+   * Requirement: Merged group stays inactive if target was inactive, keeps latest timestamp,
+   * excludes chrome://newtab/.
    */
   async smartMerge(title) {
     const { savedGroups } = await this.fetchState();
@@ -176,42 +263,60 @@ const TidyCore = {
 
     if (duplicates.length <= 1) return;
 
-    // 1. Collect all unique URLs (excluding newtab)
+    // 1. Collect all unique URLs (excluding ignored)
     const allUrls = new Set();
     duplicates.forEach(sg => {
       sg.tabs.forEach(tab => {
-        if (tab.url && tab.url !== 'chrome://newtab/' && !tab.url.startsWith('edge://newtab')) {
+        if (!this.isIgnoredUrl(tab.url)) {
           allUrls.add(tab.url);
         }
       });
     });
 
-    // 2. Identify/Create the target Active group
-    let targetSaved = duplicates.find(sg => sg.localGroupId !== null) ||
-                      duplicates.sort((a, b) => b.updateTime - a.updateTime)[0];
+    // 2. Identify target (latest update time)
+    const sorted = [...duplicates].sort((a, b) => b.updateTime - a.updateTime);
+    const targetSaved = sorted[0];
 
-    let localGroupId = targetSaved.localGroupId;
+    Utils.log(`Merging ${duplicates.length} groups for "${title}" into ${targetSaved.savedGuid}`);
 
-    // If not active, we should theoretically open it, but the spec says update "Active" group.
-    // If none are active, we'll just merge the saved data.
+    // Since we can't directly update saved group tabs via API without opening it,
+    // and the user wants to maintain inactive state, we have a challenge.
+    // However, if we open it, add tabs, then it might save.
+    // But the user said "maintain inactive".
 
-    if (localGroupId !== null) {
-      // It's active, update it with missing tabs
-      const currentTabs = await chrome.tabs.query({ groupId: localGroupId });
-      const currentUrls = new Set(currentTabs.map(t => t.url));
+    // Workaround: Open it hidden/minimized if possible? No.
+    // Actually, maybe we can open it, update, and then close it immediately.
+    // But "maintain inactive" usually implies it shouldn't pop up.
 
-      for (const url of allUrls) {
-        if (!currentUrls.has(url)) {
-          await chrome.tabs.create({ url, active: false }).then(tab => {
-            return chrome.tabs.group({ tabIds: tab.id, groupId: localGroupId });
-          });
-        }
+    // If I can't fulfill "inactive" perfectly, I'll do the closest thing:
+    // Open the target group, add all missing tabs from duplicates, then if it was inactive, close it.
+
+    let localId = targetSaved.localGroupId;
+    const wasInactive = (localId === null);
+
+    if (wasInactive) {
+      // Open it first
+      if (chrome.tabGroups.openSavedGroup) {
+        localId = await chrome.tabGroups.openSavedGroup(targetSaved.savedGuid);
+      } else {
+        // Fallback: create tabs and group them
+        const tabs = await Promise.all(targetSaved.tabs.map(t => chrome.tabs.create({ url: t.url, active: false })));
+        localId = await chrome.tabs.group({ tabIds: tabs.map(t => t.id) });
+        await chrome.tabGroups.update(localId, { title: targetSaved.title, color: targetSaved.color });
       }
     }
 
-    Utils.log(`Merging ${duplicates.length} groups for "${title}"`);
+    // Add missing tabs
+    const currentTabs = await chrome.tabs.query({ groupId: localId });
+    const currentUrls = new Set(currentTabs.map(t => t.url));
+    const tabsToAdd = Array.from(allUrls).filter(url => !currentUrls.has(url));
 
-    // 3. Delete other duplicates from saved groups
+    for (const url of tabsToAdd) {
+      const tab = await chrome.tabs.create({ url, active: false });
+      await chrome.tabs.group({ tabIds: tab.id, groupId: localId });
+    }
+
+    // Delete other duplicates
     for (const sg of duplicates) {
       if (sg.savedGuid !== targetSaved.savedGuid) {
         if (chrome.tabGroups.deleteSavedGroup) {
@@ -220,8 +325,12 @@ const TidyCore = {
       }
     }
 
-    // 4. Update the target saved group with the consolidated list of URLs if possible
-    // (In some environments, updating a saved group might happen automatically if it's active)
+    // If it was originally inactive, "save and close" to maintain intended state
+    // In Chrome, just closing the tabs of a saved group keeps it saved.
+    if (wasInactive) {
+      const finalTabs = await chrome.tabs.query({ groupId: localId });
+      await chrome.tabs.remove(finalTabs.map(t => t.id));
+    }
   },
 
   /**

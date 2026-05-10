@@ -128,3 +128,140 @@ body {
   line-height: 64px;
   font-weight: 400;
 }
+
+/* Toast Notification */
+.md-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background-color: var(--md-sys-color-inverse-surface);
+  color: var(--md-sys-color-inverse-on-surface);
+  padding: 12px 24px;
+  border-radius: var(--md-sys-shape-corner-extra-small);
+  font-size: 14px;
+  z-index: 10000;
+  transition: transform 0.3s cubic-bezier(0.05, 0.7, 0.1, 1.0);
+  box-shadow: var(--md-sys-elevation-3);
+  min-width: 200px;
+  text-align: center;
+}
+
+.md-toast.visible {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Dialog / Modal */
+.md-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.md-dialog {
+  background-color: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+  width: 90%;
+  max-width: 320px;
+  border-radius: 28px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  border: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.md-dialog__title {
+  margin-bottom: 16px;
+}
+
+.md-dialog__content {
+  margin-bottom: 24px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.md-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Settings Dialog Specifics */
+.md-dialog--settings {
+  max-width: 400px;
+  padding: 0;
+  overflow: hidden;
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.settings-tab {
+  flex: 1;
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--md-sys-color-on-surface-variant);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.settings-tab:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.settings-tab.active {
+  color: var(--md-sys-color-primary);
+  border-bottom-color: var(--md-sys-color-primary);
+}
+
+.settings-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.settings-section {
+  margin-bottom: 24px;
+}
+
+.settings-section-title {
+  color: var(--md-sys-color-primary);
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.md-typescale-label-large {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.md-select {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--md-sys-color-outline);
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+}
