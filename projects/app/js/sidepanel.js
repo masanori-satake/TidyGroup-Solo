@@ -219,11 +219,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
       } else if (tabName === 'about') {
+        const manifest = chrome.runtime.getManifest();
         contentPane.innerHTML = `
           <div style="text-align: center; padding-top: 8px;">
             <img src="icons/icon128.png" style="width: 64px; height: 64px; margin-bottom: 12px;">
             <div class="md-typescale-title-medium">TidyGroup-Solo</div>
-            <div class="md-typescale-body-small" style="margin-bottom: 16px;">Version 0.3.0</div>
+            <div class="md-typescale-body-small" style="margin-bottom: 16px;">Version ${manifest.version}</div>
 
             <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 24px;">
               <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-outline-variant); padding-bottom: 8px;">
