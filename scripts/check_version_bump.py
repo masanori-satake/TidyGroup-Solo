@@ -11,19 +11,16 @@ def get_base_version():
         # Check if we are in a git repo
         subprocess.run(["git", "rev-parse", "--is-inside-work-tree"], check=True, capture_output=True)
 
-        # Get the default branch name
-        base_branch = "main"
+        # Try 'main' first, then 'origin/main' (common in CI)
+        for base_branch in ["main", "origin/main"]:
+            cmd = ["git", "show", f"{base_branch}:projects/app/manifest.json"]
+            result = subprocess.run(cmd, capture_output=True, text=True)
 
-        # Try to get the version from the base branch
-        cmd = ["git", "show", f"{base_branch}:projects/app/manifest.json"]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode == 0:
+                manifest = json.loads(result.stdout)
+                return manifest.get("version")
 
-        if result.returncode == 0:
-            manifest = json.loads(result.stdout)
-            return manifest.get("version")
-        else:
-            # If main doesn't exist or file doesn't exist there, return None
-            return None
+        return None
     except Exception:
         return None
 
@@ -36,14 +33,20 @@ def check_version_bump():
         # In CI, we usually want to be strict.
         is_ci = os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
 
-        # 1. Check if there are ANY changes in projects/app/ compared to main
-        # This includes staged, unstaged, and commits in the current branch
-        cmd = ["git", "diff", "main", "--name-only", "projects/app/"]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        # 1. Check if there are ANY changes in projects/app/ compared to base branch
+        # Try 'main' then 'origin/main'
+        changed_files = None
+        for base_branch in ["main", "origin/main"]:
+            cmd = ["git", "diff", base_branch, "--name-only", "projects/app/"]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode == 0:
+                changed_files = result.stdout.strip().split("\n")
+                changed_files = [f for f in changed_files if f]
+                break
 
-        if result.returncode != 0:
+        if changed_files is None:
             if is_ci:
-                print(f"Error: Failed to run git diff against 'main'. {result.stderr}")
+                print(f"Error: Failed to run git diff against 'main' or 'origin/main'.")
                 return False
             else:
                 print(f"Warning: Could not determine changes against 'main'. Skipping bump check.")
