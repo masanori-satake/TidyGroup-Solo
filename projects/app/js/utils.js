@@ -148,8 +148,8 @@ const TidyCore = {
       }
 
       return { activeGroups, savedGroups };
-    } catch (e) {
-      Utils.log(`Error fetching state: ${e.message}`);
+    } catch (err) {
+      Utils.log(`Error fetching state: ${err.message}`);
       return { activeGroups: [], savedGroups: [] };
     }
   },
@@ -167,7 +167,7 @@ const TidyCore = {
       if (ignoredProtocols.includes(parsed.protocol)) return true;
       if (ignoredHosts.includes(parsed.hostname)) return true;
       return false;
-    } catch (e) {
+    } catch (_) {
       return true;
     }
   },
@@ -205,7 +205,7 @@ const TidyCore = {
         .map(t => {
           try {
             return new URL(t.url).hostname;
-          } catch (e) {
+          } catch (_) {
             return null;
           }
         })
@@ -216,7 +216,7 @@ const TidyCore = {
         try {
           const host = new URL(t.url).hostname;
           return host.startsWith('m.') || host.startsWith('mobile.');
-        } catch (e) {
+        } catch (_) {
           return false;
         }
       });
@@ -351,7 +351,7 @@ const TidyCore = {
     const sorted = [...duplicates].sort((a, b) => b.updateTime - a.updateTime);
     const targetSaved = sorted[0];
 
-    Utils.log(`Merging ${duplicates.length} groups for "${title}" into ${targetSaved.savedGuid}`);
+    Utils.log(`Merging ${duplicates.length} groups for "${targetTitle}" into ${targetSaved.savedGuid}`);
 
     // Since we can't directly update saved group tabs via API without opening it,
     // and the user wants to maintain inactive state, we have a challenge.
