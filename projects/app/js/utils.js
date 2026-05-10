@@ -249,6 +249,12 @@ const TidyCore = {
    */
   analyzeState(activeGroups, savedGroups) {
     const savedLocalIds = new Map();
+    const activeGroupMap = new Map();
+
+    activeGroups.forEach(ag => {
+      activeGroupMap.set(ag.id, ag);
+    });
+
     savedGroups.forEach(sg => {
       const guid = sg.id || sg.savedGuid;
       if (guid && sg.localGroupId !== null) {
@@ -272,7 +278,14 @@ const TidyCore = {
     // Helper to extract info from any group (Active or Saved)
     const normalizeGroup = (g, type) => {
       if (!g) return null;
-      const tabs = g.tabs || [];
+      let tabs = g.tabs || [];
+      const localId = type === 'active' ? g.id : g.localGroupId;
+
+      // If it's a saved group but currently active, use active tabs for richer metadata (e.g. lastAccessed)
+      if (type === 'saved' && localId !== null && activeGroupMap.has(localId)) {
+        tabs = activeGroupMap.get(localId).tabs || [];
+      }
+
       const tabCount = tabs.length;
       const title = g.title || 'Untitled';
       const domains = Array.from(new Set(tabs
@@ -472,9 +485,9 @@ const TidyCore = {
     const currentUrls = new Set(currentTabs.map(t => t.url));
     const tabsToAdd = Array.from(allUrls).filter(url => !currentUrls.has(url));
 
-    for (const url of tabsToAdd) {
-      const tab = await chrome.tabs.create({ url, active: false });
-      await chrome.tabs.group({ tabIds: tab.id, groupId: localId });
+    const newTabs = await Promise.all(tabsToAdd.map(url => chrome.tabs.create({ url, active: false })));
+    if (newTabs.length > 0) {
+      await chrome.tabs.group({ tabIds: newTabs.map(t => t.id), groupId: localId });
     }
 
     // Delete other duplicates
@@ -512,9 +525,9 @@ const TidyCore = {
           await chrome.tabs.remove(tabs.map(t => t.id));
         }
       } else {
-        // It's a savedGuid
+        // It's a saved GUID/ID
         // Check if it's currently open
-        const sg = savedGroups.find(g => g.savedGuid === id);
+        const sg = savedGroups.find(g => (g.id || g.savedGuid) === id);
         if (sg && sg.localGroupId !== null) {
           const tabs = await chrome.tabs.query({ groupId: sg.localGroupId });
           if (tabs.length > 0) {
