@@ -105,8 +105,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.body.appendChild(overlay);
 
     // Close on overlay click
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) overlay.remove();
+    overlay.addEventListener('click', (ev) => {
+      if (ev.target === overlay) overlay.remove();
     });
 
     const contentPane = dialog.querySelector('#settings-content-pane');
@@ -203,8 +203,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         contentPane.querySelector('#btn-import-file').addEventListener('click', () => {
           fileInput.click();
         });
-        fileInput.addEventListener('change', (e) => {
-          const file = e.target.files[0];
+        fileInput.addEventListener('change', (ev) => {
+          const file = ev.target.files[0];
           if (!file) return;
           const reader = new FileReader();
           reader.onload = async (re) => {
@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               renderTab('general');
               updateUI();
               Utils.UI.showToast('設定を読み込みました');
-            } catch (err) {
+            } catch (_) {
               Utils.UI.showToast('読み込みに失敗しました');
             }
           };

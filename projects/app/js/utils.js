@@ -85,6 +85,20 @@ const TidyCore = {
     staleThreshold: 30
   },
 
+  /**
+   * Helper to normalize titles for duplicate detection and grouping.
+   * e.g., "1個のタブ", "2個のタブ" -> "GENERIC_TAB_GROUP_TITLE"
+   */
+  normalizeTitle: function(title) {
+    if (!title) return 'Untitled';
+    const trimmed = title.trim();
+    // Normalize "x tabs" or "x個のタブ" (case-insensitive)
+    if (/^\d+\s*個のタブ$/i.test(trimmed) || /^\d+\s*tabs?$/i.test(trimmed)) {
+      return 'GENERIC_TAB_GROUP_TITLE';
+    }
+    return trimmed;
+  },
+
   async init() {
     await this.loadSettings();
   },
@@ -134,8 +148,8 @@ const TidyCore = {
       }
 
       return { activeGroups, savedGroups };
-    } catch (e) {
-      Utils.log(`Error fetching state: ${e.message}`);
+    } catch (err) {
+      Utils.log(`Error fetching state: ${err.message}`);
       return { activeGroups: [], savedGroups: [] };
     }
   },
@@ -153,7 +167,7 @@ const TidyCore = {
       if (ignoredProtocols.includes(parsed.protocol)) return true;
       if (ignoredHosts.includes(parsed.hostname)) return true;
       return false;
-    } catch (e) {
+    } catch (_) {
       return true;
     }
   },
@@ -191,7 +205,7 @@ const TidyCore = {
         .map(t => {
           try {
             return new URL(t.url).hostname;
-          } catch (e) {
+          } catch (_) {
             return null;
           }
         })
@@ -202,7 +216,7 @@ const TidyCore = {
         try {
           const host = new URL(t.url).hostname;
           return host.startsWith('m.') || host.startsWith('mobile.');
-        } catch (e) {
+        } catch (_) {
           return false;
         }
       });
@@ -243,11 +257,11 @@ const TidyCore = {
       }
     });
 
-    // Title count for mixed check
+    // Title count for mixed check (using normalized titles)
     const titleCount = new Map();
     allGroups.forEach(g => {
-      const title = g.title || 'Untitled';
-      titleCount.set(title, (titleCount.get(title) || 0) + 1);
+      const nTitle = this.normalizeTitle(g.title);
+      titleCount.set(nTitle, (titleCount.get(nTitle) || 0) + 1);
     });
 
     // Final categorization
@@ -262,7 +276,8 @@ const TidyCore = {
       }
 
       // Mixed (Duplicates)
-      if (titleCount.get(g.title) > 1) {
+      const nTitle = this.normalizeTitle(g.title);
+      if (titleCount.get(nTitle) > 1) {
         analysis.mixed.push(g);
       }
 
@@ -272,8 +287,17 @@ const TidyCore = {
         analysis.empty.push(g);
       }
 
-      // Stale (Only for inactive saved groups)
-      if (!g.isActive && g.isSaved && g.updateTime < staleLimit) {
+      // Stale logic
+      let isStale = false;
+      if (g.isActive && g.tabs.length > 0) {
+        // Active groups: stale if ALL tabs are older than staleLimit
+        isStale = g.tabs.every(t => t.lastAccessed && t.lastAccessed < staleLimit);
+      } else if (!g.isActive && g.updateTime < staleLimit) {
+        // Inactive saved groups: use updateTime
+        isStale = true;
+      }
+
+      if (isStale) {
         analysis.stale.push(g);
       }
     });
@@ -303,9 +327,13 @@ const TidyCore = {
    * Requirement: Merged group stays inactive if target was inactive, keeps latest timestamp,
    * excludes chrome://newtab/.
    */
-  async smartMerge(title) {
+  async smartMerge(targetTitle) {
     const { savedGroups } = await this.fetchState();
-    const duplicates = savedGroups.filter(sg => (sg.title || 'Untitled') === title);
+    const normalizedTarget = this.normalizeTitle(targetTitle);
+
+    const duplicates = savedGroups.filter(sg => {
+      return this.normalizeTitle(sg.title) === normalizedTarget;
+    });
 
     if (duplicates.length <= 1) return;
 
@@ -323,7 +351,7 @@ const TidyCore = {
     const sorted = [...duplicates].sort((a, b) => b.updateTime - a.updateTime);
     const targetSaved = sorted[0];
 
-    Utils.log(`Merging ${duplicates.length} groups for "${title}" into ${targetSaved.savedGuid}`);
+    Utils.log(`Merging ${duplicates.length} groups for "${targetTitle}" into ${targetSaved.savedGuid}`);
 
     // Since we can't directly update saved group tabs via API without opening it,
     // and the user wants to maintain inactive state, we have a challenge.
