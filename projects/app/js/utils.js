@@ -127,6 +127,24 @@ const TidyCore = {
   },
 
   /**
+   * Helper to check if a URL should be filtered out/ignored
+   */
+  isIgnoredUrl: function(url) {
+    if (!url) return true;
+    const ignoredProtocols = ['chrome:', 'edge:', 'about:', 'chrome-extension:', 'chrome-search:'];
+    const ignoredHosts = ['newtab', 'localhost', '127.0.0.1'];
+
+    try {
+      const parsed = new URL(url);
+      if (ignoredProtocols.includes(parsed.protocol)) return true;
+      if (ignoredHosts.includes(parsed.hostname)) return true;
+      return false;
+    } catch (e) {
+      return true;
+    }
+  },
+
+  /**
    * Analyzes the state and categorizes groups
    */
   analyzeState(activeGroups, savedGroups) {
@@ -163,7 +181,7 @@ const TidyCore = {
             return null;
           }
         })
-        .filter(h => h && h !== 'newtab' && h !== 'localhost' && h !== 'chrome-extension')))
+        .filter(h => h && !this.isIgnoredUrl(`http://${h}`))))
         .slice(0, 3);
 
       const hasMobile = (sg.tabs || []).some(t => {
@@ -203,7 +221,8 @@ const TidyCore = {
       }
 
       // Empty
-      if (tabCount === 0 || (tabCount === 1 && (sg.tabs[0].url === 'chrome://newtab/' || sg.tabs[0].url === 'edge://newtab/'))) {
+      const nonIgnoredTabs = (sg.tabs || []).filter(t => !this.isIgnoredUrl(t.url));
+      if (tabCount === 0 || nonIgnoredTabs.length === 0) {
         analysis.empty.push(groupInfo);
       }
 
@@ -244,11 +263,11 @@ const TidyCore = {
 
     if (duplicates.length <= 1) return;
 
-    // 1. Collect all unique URLs (excluding newtab)
+    // 1. Collect all unique URLs (excluding ignored)
     const allUrls = new Set();
     duplicates.forEach(sg => {
       sg.tabs.forEach(tab => {
-        if (tab.url && tab.url !== 'chrome://newtab/' && !tab.url.startsWith('edge://newtab') && !tab.url.startsWith('chrome-extension://')) {
+        if (!this.isIgnoredUrl(tab.url)) {
           allUrls.add(tab.url);
         }
       });

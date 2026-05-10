@@ -79,6 +79,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dialog = document.createElement('div');
     dialog.className = 'md-dialog md-dialog--settings';
     dialog.innerHTML = `
+      <div class="settings-header" style="display: flex; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--md-sys-color-outline-variant);">
+        <button class="md-button md-button--text btn-close-settings" style="padding: 8px; margin-right: 8px;">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+        <div class="md-typescale-title-medium">設定</div>
+      </div>
       <div class="settings-tabs">
         <div class="settings-tab active" data-tab="general" title="一般">
           <span class="material-symbols-outlined">settings</span>
@@ -90,13 +96,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       <div class="settings-content" id="settings-content-pane">
         <!-- Content will be injected here -->
       </div>
-      <div class="md-dialog__actions" style="padding: 16px;">
-        <button class="md-button md-button--text btn-close-settings">閉じる</button>
-      </div>
     `;
 
     overlay.appendChild(dialog);
     document.body.appendChild(overlay);
+
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
 
     const contentPane = dialog.querySelector('#settings-content-pane');
 
@@ -120,26 +128,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             </div>
           </div>
           <div class="settings-section">
-            <div class="settings-section-title md-typescale-title-small">設定</div>
+            <div class="settings-section-title md-typescale-title-small">設定データの書き出し/読み込み</div>
             <div style="display: flex; flex-direction: column; gap: 8px;">
               <div style="display: flex; gap: 8px;">
-                <button id="btn-export-clipboard" class="md-button md-button--tonal" style="flex: 1; padding: 8px;">
-                  <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">content_copy</span>
-                  クリップボードに書き出し
+                <button id="btn-export-clipboard" class="md-button md-button--tonal" style="flex: 1; padding: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                  <span class="material-symbols-outlined" style="font-size: 18px;">content_copy</span>
+                  <span class="md-typescale-label-medium">クリップボードにコピー</span>
                 </button>
-                <button id="btn-import-clipboard" class="md-button md-button--tonal" style="flex: 1; padding: 8px;">
-                  <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">content_paste</span>
-                  クリップボードから読み込み
+                <button id="btn-import-clipboard" class="md-button md-button--tonal" style="flex: 1; padding: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                  <span class="material-symbols-outlined" style="font-size: 18px;">content_paste</span>
+                  <span class="md-typescale-label-medium">クリップボードから復元</span>
                 </button>
               </div>
               <div style="display: flex; gap: 8px;">
-                <button id="btn-export-file" class="md-button md-button--tonal" style="flex: 1; padding: 8px;">
-                  <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">download</span>
-                  ファイルに書き出し
+                <button id="btn-export-file" class="md-button md-button--tonal" style="flex: 1; padding: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                  <span class="material-symbols-outlined" style="font-size: 18px;">download</span>
+                  <span class="md-typescale-label-medium">ファイルへ書き出し</span>
                 </button>
-                <button id="btn-import-file" class="md-button md-button--tonal" style="flex: 1; padding: 8px;">
-                  <span class="material-symbols-outlined" style="font-size: 18px; vertical-align: middle; margin-right: 4px;">upload</span>
-                  ファイルから読み込み
+                <button id="btn-import-file" class="md-button md-button--tonal" style="flex: 1; padding: 8px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                  <span class="material-symbols-outlined" style="font-size: 18px;">upload</span>
+                  <span class="md-typescale-label-medium">ファイルから復元</span>
                 </button>
               </div>
               <input type="file" id="file-input" style="display: none;" accept=".json">
@@ -216,6 +224,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             <img src="icons/icon128.png" style="width: 64px; height: 64px; margin-bottom: 12px;">
             <div class="md-typescale-title-medium">TidyGroup-Solo</div>
             <div class="md-typescale-body-small" style="margin-bottom: 16px;">Version 0.3.0</div>
+
+            <div style="display: flex; flex-direction: column; gap: 12px; text-align: left; margin-bottom: 24px;">
+              <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--md-sys-color-outline-variant); padding-bottom: 8px;">
+                <span class="md-typescale-label-large">放置閾値</span>
+                <span class="md-typescale-body-medium">${TidyCore.settings.staleThreshold} days</span>
+              </div>
+            </div>
 
             <div class="md-typescale-body-medium" style="text-align: left; margin-bottom: 24px; color: var(--md-sys-color-on-surface-variant);">
               大量に蓄積し、重複したタブグループをスマートに整理・クレンジングするローカル完結型Chrome拡張機能。
