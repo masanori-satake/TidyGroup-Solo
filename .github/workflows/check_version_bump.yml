@@ -23,12 +23,18 @@ jobs:
         id: base_version
         run: |
           # Try to get version from projects/app in the base branch
-          if git show ${{ github.base_ref }}:projects/app/manifest.json >/dev/null 2>&1; then
+          # In GitHub Actions with fetch-depth: 0, origin/main should be available
+          BASE_REF="origin/${{ github.base_ref }}"
+          if git show $BASE_REF:projects/app/manifest.json >/dev/null 2>&1; then
+            VERSION=$(git show $BASE_REF:projects/app/manifest.json | jq -r .version)
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          elif git show ${{ github.base_ref }}:projects/app/manifest.json >/dev/null 2>&1; then
             VERSION=$(git show ${{ github.base_ref }}:projects/app/manifest.json | jq -r .version)
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
           else
-            VERSION="0.0.0"
+            echo "Error: Could not retrieve projects/app/manifest.json from base branch ($BASE_REF or ${{ github.base_ref }})."
+            exit 1
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Get head version
         id: head_version
