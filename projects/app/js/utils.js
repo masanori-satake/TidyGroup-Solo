@@ -141,6 +141,7 @@ const TidyCore = {
         platform: navigator.platform
       },
       apis: {
+        savedTabGroupsGetAll: typeof (chrome.savedTabGroups && chrome.savedTabGroups.getAll),
         getAllSavedGroups: typeof chrome.tabGroups.getAllSavedGroups,
         getSavedGroups: typeof chrome.tabGroups.getSavedGroups,
         tabGroupsQuery: typeof chrome.tabGroups.query,
@@ -182,8 +183,19 @@ const TidyCore = {
       }
 
       let savedGroups = [];
-      // Try getAllSavedGroups (Manifest V3 newer standard)
-      if (typeof chrome.tabGroups.getAllSavedGroups === 'function') {
+
+      // 1. Try new chrome.savedTabGroups API (Chrome 132+)
+      if (chrome.savedTabGroups && typeof chrome.savedTabGroups.getAll === 'function') {
+        try {
+          savedGroups = await chrome.savedTabGroups.getAll();
+          this.lastDiagnostics.apis.savedTabGroupsGetAllResult = savedGroups.length;
+        } catch (e) {
+          this.lastDiagnostics.errors.push(`savedTabGroups.getAll error: ${e.message}`);
+        }
+      }
+
+      // 2. Try getAllSavedGroups (Legacy experimental standard)
+      if (savedGroups.length === 0 && typeof chrome.tabGroups.getAllSavedGroups === 'function') {
         try {
           savedGroups = await chrome.tabGroups.getAllSavedGroups();
           this.lastDiagnostics.apis.getAllSavedGroupsResult = savedGroups.length;
@@ -237,6 +249,12 @@ const TidyCore = {
    */
   analyzeState(activeGroups, savedGroups) {
     const savedLocalIds = new Map();
+    const activeGroupMap = new Map();
+
+    activeGroups.forEach(ag => {
+      activeGroupMap.set(ag.id, ag);
+    });
+
     savedGroups.forEach(sg => {
       const guid = sg.id || sg.savedGuid;
       if (guid && sg.localGroupId !== null) {
@@ -260,7 +278,14 @@ const TidyCore = {
     // Helper to extract info from any group (Active or Saved)
     const normalizeGroup = (g, type) => {
       if (!g) return null;
-      const tabs = g.tabs || [];
+      let tabs = g.tabs || [];
+      const localId = type === 'active' ? g.id : g.localGroupId;
+
+      // If it's a saved group but currently active, use active tabs for richer metadata (e.g. lastAccessed)
+      if (type === 'saved' && localId !== null && activeGroupMap.has(localId)) {
+        tabs = activeGroupMap.get(localId).tabs || [];
+      }
+
       const tabCount = tabs.length;
       const title = g.title || 'Untitled';
       const domains = Array.from(new Set(tabs
@@ -443,7 +468,9 @@ const TidyCore = {
 
     if (wasInactive) {
       // Open it first
-      if (chrome.tabGroups.openSavedGroup) {
+      if (chrome.savedTabGroups && typeof chrome.savedTabGroups.open === 'function') {
+        localId = await chrome.savedTabGroups.open(targetSaved.id || targetSaved.savedGuid);
+      } else if (chrome.tabGroups.openSavedGroup) {
         localId = await chrome.tabGroups.openSavedGroup(targetSaved.savedGuid);
       } else {
         // Fallback: create tabs and group them
@@ -458,16 +485,20 @@ const TidyCore = {
     const currentUrls = new Set(currentTabs.map(t => t.url));
     const tabsToAdd = Array.from(allUrls).filter(url => !currentUrls.has(url));
 
-    for (const url of tabsToAdd) {
-      const tab = await chrome.tabs.create({ url, active: false });
-      await chrome.tabs.group({ tabIds: tab.id, groupId: localId });
+    const newTabs = await Promise.all(tabsToAdd.map(url => chrome.tabs.create({ url, active: false })));
+    if (newTabs.length > 0) {
+      await chrome.tabs.group({ tabIds: newTabs.map(t => t.id), groupId: localId });
     }
 
     // Delete other duplicates
     for (const sg of duplicates) {
-      if (sg.savedGuid !== targetSaved.savedGuid) {
-        if (chrome.tabGroups.deleteSavedGroup) {
-          await chrome.tabGroups.deleteSavedGroup(sg.savedGuid);
+      const guid = sg.id || sg.savedGuid;
+      const targetGuid = targetSaved.id || targetSaved.savedGuid;
+      if (guid !== targetGuid) {
+        if (chrome.savedTabGroups && typeof chrome.savedTabGroups.remove === 'function') {
+          await chrome.savedTabGroups.remove(guid);
+        } else if (chrome.tabGroups.deleteSavedGroup) {
+          await chrome.tabGroups.deleteSavedGroup(guid);
         }
       }
     }
@@ -494,16 +525,18 @@ const TidyCore = {
           await chrome.tabs.remove(tabs.map(t => t.id));
         }
       } else {
-        // It's a savedGuid
+        // It's a saved GUID/ID
         // Check if it's currently open
-        const sg = savedGroups.find(g => g.savedGuid === id);
+        const sg = savedGroups.find(g => (g.id || g.savedGuid) === id);
         if (sg && sg.localGroupId !== null) {
           const tabs = await chrome.tabs.query({ groupId: sg.localGroupId });
           if (tabs.length > 0) {
             await chrome.tabs.remove(tabs.map(t => t.id));
           }
         }
-        if (chrome.tabGroups.deleteSavedGroup) {
+        if (chrome.savedTabGroups && typeof chrome.savedTabGroups.remove === 'function') {
+          await chrome.savedTabGroups.remove(id);
+        } else if (chrome.tabGroups.deleteSavedGroup) {
           await chrome.tabGroups.deleteSavedGroup(id);
         }
       }
@@ -522,8 +555,12 @@ const TidyCore = {
       }
     }
 
-    if (savedGuid && !savedGuid.startsWith('local-') && chrome.tabGroups.deleteSavedGroup) {
-      await chrome.tabGroups.deleteSavedGroup(savedGuid);
+    if (savedGuid && !savedGuid.startsWith('local-')) {
+      if (chrome.savedTabGroups && typeof chrome.savedTabGroups.remove === 'function') {
+        await chrome.savedTabGroups.remove(savedGuid);
+      } else if (chrome.tabGroups.deleteSavedGroup) {
+        await chrome.tabGroups.deleteSavedGroup(savedGuid);
+      }
     }
   },
 
