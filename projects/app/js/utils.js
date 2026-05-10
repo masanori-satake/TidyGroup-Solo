@@ -143,7 +143,8 @@ const TidyCore = {
       apis: {
         getAllSavedGroups: typeof chrome.tabGroups.getAllSavedGroups,
         getSavedGroups: typeof chrome.tabGroups.getSavedGroups,
-        tabGroupsQuery: typeof chrome.tabGroups.query
+        tabGroupsQuery: typeof chrome.tabGroups.query,
+        tabGroupsKeys: Object.keys(chrome.tabGroups || {})
       },
       errors: [],
       windowStats: []
@@ -237,8 +238,9 @@ const TidyCore = {
   analyzeState(activeGroups, savedGroups) {
     const savedLocalIds = new Map();
     savedGroups.forEach(sg => {
-      if (sg.localGroupId !== null) {
-        savedLocalIds.set(sg.localGroupId, sg.savedGuid);
+      const guid = sg.id || sg.savedGuid;
+      if (guid && sg.localGroupId !== null) {
+        savedLocalIds.set(sg.localGroupId, guid);
       }
     });
 
@@ -282,7 +284,7 @@ const TidyCore = {
       });
 
       return {
-        id: type === 'saved' ? g.savedGuid : (savedLocalIds.get(g.id) || `local-${g.id}`),
+        id: type === 'saved' ? (g.id || g.savedGuid) : (savedLocalIds.get(g.id) || `local-${g.id}`),
         localId: type === 'active' ? g.id : g.localGroupId,
         title: title,
         color: g.color,
@@ -305,7 +307,8 @@ const TidyCore = {
       const info = normalizeGroup(sg, 'saved');
       if (info) {
         allGroups.push(info);
-        if (sg.savedGuid) processedSavedGuids.add(sg.savedGuid);
+        const guid = sg.id || sg.savedGuid;
+        if (guid) processedSavedGuids.add(guid);
         if (sg.localGroupId !== null) processedLocalIds.add(sg.localGroupId);
       }
     });
