@@ -207,8 +207,40 @@ const TidyCore = {
       // If still empty and getSavedGroups exists, try fallback/alternative
       if (savedGroups.length === 0 && typeof chrome.tabGroups.getSavedGroups === 'function') {
         try {
-          // getSavedGroups often takes no arguments or a callback
-          const sgAlt = await chrome.tabGroups.getSavedGroups();
+          // Some versions might require a callback or return a promise.
+          // Wrapped in a promise for consistency.
+          const sgAlt = await new Promise((resolve, reject) => {
+            try {
+              const result = chrome.tabGroups.getSavedGroups({}, (res) => {
+                if (chrome.runtime.lastError) {
+                  reject(chrome.runtime.lastError);
+                } else {
+                  resolve(res);
+                }
+              });
+              // If it returns a promise (MV3), result will be a promise.
+              if (result instanceof Promise) {
+                result.then(resolve).catch(reject);
+              }
+            } catch (err) {
+              // If calling with {} fails, try without arguments
+              try {
+                const resultNoArgs = chrome.tabGroups.getSavedGroups((res) => {
+                  if (chrome.runtime.lastError) {
+                    reject(chrome.runtime.lastError);
+                  } else {
+                    resolve(res);
+                  }
+                });
+                if (resultNoArgs instanceof Promise) {
+                  resultNoArgs.then(resolve).catch(reject);
+                }
+              } catch (innerErr) {
+                reject(innerErr);
+              }
+            }
+          });
+
           this.lastDiagnostics.apis.getSavedGroupsResult = sgAlt ? sgAlt.length : 0;
           if (sgAlt && sgAlt.length > 0) {
             savedGroups = sgAlt;
