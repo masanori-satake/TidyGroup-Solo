@@ -6,6 +6,7 @@
   "permissions": [
     "sidePanel",
     "tabGroups",
+    "savedTabGroups",
     "tabs",
     "storage"
   ],
