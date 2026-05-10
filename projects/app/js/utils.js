@@ -92,7 +92,7 @@ const TidyCore = {
   normalizeTitle: function(title) {
     if (!title) return 'Untitled';
     // Remove "🧲" (TabMagnet-Solo marker) and trim
-    let normalized = title.replace('🧲', '').trim();
+    let normalized = title.replace(/🧲/g, '').trim();
     if (!normalized) return 'Untitled';
 
     // Normalize "x tabs" or "x個のタブ" (case-insensitive)
@@ -422,7 +422,7 @@ const TidyCore = {
    * Batch Cleanup: Deletes groups based on criteria
    */
   async batchCleanup(ids) {
-    const { activeGroups, savedGroups } = await this.fetchState();
+    const { savedGroups } = await this.fetchState();
 
     for (const id of ids) {
       if (id.startsWith('local-')) {

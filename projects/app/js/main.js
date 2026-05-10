@@ -204,8 +204,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (g.isActive && g.tabs.length > 0) {
         // For active groups, age is based on the most recently accessed tab
-        const lastAccess = Math.max(...g.tabs.map(t => t.lastAccessed || 0));
-        ageInDays = lastAccess > 0 ? (now - lastAccess) / (1000 * 60 * 60 * 24) : 999;
+        const lastAccess = g.tabs.reduce((max, t) => Math.max(max, t.lastAccessed || 0), 0);
+        // If lastAccess is 0, it means no tabs have been accessed since browser restart.
+        // We treat such groups as new (0 days) to be safe.
+        ageInDays = lastAccess > 0 ? (now - lastAccess) / (1000 * 60 * 60 * 24) : 0;
       } else {
         ageInDays = (now - g.updateTime) / (1000 * 60 * 60 * 24);
       }
