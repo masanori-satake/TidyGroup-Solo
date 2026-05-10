@@ -85,6 +85,20 @@ const TidyCore = {
     staleThreshold: 30
   },
 
+  /**
+   * Helper to normalize titles for duplicate detection and grouping.
+   * e.g., "1個のタブ", "2個のタブ" -> "GENERIC_TAB_GROUP_TITLE"
+   */
+  normalizeTitle: function(title) {
+    if (!title) return 'Untitled';
+    const trimmed = title.trim();
+    // Normalize "x tabs" or "x個のタブ" (case-insensitive)
+    if (/^\d+\s*個のタブ$/i.test(trimmed) || /^\d+\s*tabs?$/i.test(trimmed)) {
+      return 'GENERIC_TAB_GROUP_TITLE';
+    }
+    return trimmed;
+  },
+
   async init() {
     await this.loadSettings();
   },
@@ -243,20 +257,10 @@ const TidyCore = {
       }
     });
 
-    // Helper to normalize titles for duplicate detection
-    const normalizeTitle = (title) => {
-      if (!title) return 'Untitled';
-      // Normalize "x tabs" or "x個のタブ" to a generic title
-      if (/^\d+\s*個のタブ$/.test(title) || /^\d+\s*tabs?$/.test(title)) {
-        return 'GENERIC_TAB_GROUP_TITLE';
-      }
-      return title;
-    };
-
     // Title count for mixed check (using normalized titles)
     const titleCount = new Map();
     allGroups.forEach(g => {
-      const nTitle = normalizeTitle(g.title);
+      const nTitle = this.normalizeTitle(g.title);
       titleCount.set(nTitle, (titleCount.get(nTitle) || 0) + 1);
     });
 
@@ -272,7 +276,7 @@ const TidyCore = {
       }
 
       // Mixed (Duplicates)
-      const nTitle = normalizeTitle(g.title);
+      const nTitle = this.normalizeTitle(g.title);
       if (titleCount.get(nTitle) > 1) {
         analysis.mixed.push(g);
       }
@@ -323,9 +327,13 @@ const TidyCore = {
    * Requirement: Merged group stays inactive if target was inactive, keeps latest timestamp,
    * excludes chrome://newtab/.
    */
-  async smartMerge(title) {
+  async smartMerge(targetTitle) {
     const { savedGroups } = await this.fetchState();
-    const duplicates = savedGroups.filter(sg => (sg.title || 'Untitled') === title);
+    const normalizedTarget = this.normalizeTitle(targetTitle);
+
+    const duplicates = savedGroups.filter(sg => {
+      return this.normalizeTitle(sg.title) === normalizedTarget;
+    });
 
     if (duplicates.length <= 1) return;
 

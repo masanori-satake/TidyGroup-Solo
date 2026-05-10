@@ -133,8 +133,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const groupsByTitle = new Map();
     analysis.mixed.forEach(g => {
-      if (!groupsByTitle.has(g.title)) groupsByTitle.set(g.title, []);
-      groupsByTitle.get(g.title).push(g);
+      const nTitle = TidyCore.normalizeTitle(g.title);
+      if (!groupsByTitle.has(nTitle)) groupsByTitle.set(nTitle, []);
+      groupsByTitle.get(nTitle).push(g);
     });
 
     if (groupsByTitle.size === 0) {
@@ -142,11 +143,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    groupsByTitle.forEach((groups, title) => {
+    groupsByTitle.forEach((groups, titleKey) => {
       const card = document.createElement('div');
       card.className = 'md-card item-card';
       card.style.padding = '16px';
       card.style.marginBottom = '12px';
+
+      const displayTitle = titleKey === 'GENERIC_TAB_GROUP_TITLE' ? '（名前のないグループ）' : titleKey;
 
       // Collect all unique domains from all duplicates
       const allDomains = Array.from(new Set(groups.flatMap(g => g.domains))).slice(0, 5);
@@ -155,11 +158,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       card.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <h3 class="md-typescale-title-medium">${title}</h3>
+            <h3 class="md-typescale-title-medium">${displayTitle}</h3>
             <p class="md-typescale-body-small">${groups.length} 個の重複が見つかりました</p>
             <div style="margin-top: 8px;">${domainHtml}</div>
           </div>
-          <button class="md-button md-button--filled btn-merge-action" data-title="${title}" data-count="${groups.length}">マージを実行</button>
+          <button class="md-button md-button--filled btn-merge-action" data-title="${titleKey}" data-count="${groups.length}">マージを実行</button>
         </div>
       `;
       container.appendChild(card);
