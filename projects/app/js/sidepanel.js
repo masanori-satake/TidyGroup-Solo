@@ -309,7 +309,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `tidygroup-debug-${new Date().getTime()}.json`;
+          a.download = `tidygroup-debug-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.json`;
           a.click();
           URL.revokeObjectURL(url);
         });
