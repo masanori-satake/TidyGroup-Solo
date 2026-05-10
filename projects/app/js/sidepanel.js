@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             <div style="margin-bottom: 20px;">
               <div class="md-typescale-label-medium" style="color: var(--md-sys-color-on-surface-variant); margin-bottom: 4px;">放置期間閾値</div>
-              <div class="md-typescale-title-large">${TidyCore.settings.staleThreshold}</div>
+              <div class="md-typescale-title-large">${TidyCore.settings.staleThreshold} 日間</div>
             </div>
 
             <div style="margin-bottom: 24px;">
