@@ -208,7 +208,7 @@ const TidyCore = {
       });
 
       return {
-        id: type === 'saved' ? g.savedGuid : (savedLocalIds.get(g.id) || null),
+        id: type === 'saved' ? g.savedGuid : (savedLocalIds.get(g.id) || `local-${g.id}`),
         localId: type === 'active' ? g.id : g.localGroupId,
         title: title,
         color: g.color,
@@ -402,7 +402,7 @@ const TidyCore = {
       }
     }
 
-    if (savedGuid && chrome.tabGroups.deleteSavedGroup) {
+    if (savedGuid && !savedGuid.startsWith('local-') && chrome.tabGroups.deleteSavedGroup) {
       await chrome.tabGroups.deleteSavedGroup(savedGuid);
     }
   },
