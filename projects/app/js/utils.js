@@ -243,11 +243,21 @@ const TidyCore = {
       }
     });
 
-    // Title count for mixed check
+    // Helper to normalize titles for duplicate detection
+    const normalizeTitle = (title) => {
+      if (!title) return 'Untitled';
+      // Normalize "x tabs" or "x個のタブ" to a generic title
+      if (/^\d+\s*個のタブ$/.test(title) || /^\d+\s*tabs?$/.test(title)) {
+        return 'GENERIC_TAB_GROUP_TITLE';
+      }
+      return title;
+    };
+
+    // Title count for mixed check (using normalized titles)
     const titleCount = new Map();
     allGroups.forEach(g => {
-      const title = g.title || 'Untitled';
-      titleCount.set(title, (titleCount.get(title) || 0) + 1);
+      const nTitle = normalizeTitle(g.title);
+      titleCount.set(nTitle, (titleCount.get(nTitle) || 0) + 1);
     });
 
     // Final categorization
@@ -262,7 +272,8 @@ const TidyCore = {
       }
 
       // Mixed (Duplicates)
-      if (titleCount.get(g.title) > 1) {
+      const nTitle = normalizeTitle(g.title);
+      if (titleCount.get(nTitle) > 1) {
         analysis.mixed.push(g);
       }
 
@@ -272,8 +283,17 @@ const TidyCore = {
         analysis.empty.push(g);
       }
 
-      // Stale (Only for inactive saved groups)
-      if (!g.isActive && g.isSaved && g.updateTime < staleLimit) {
+      // Stale logic
+      let isStale = false;
+      if (g.isActive && g.tabs.length > 0) {
+        // Active groups: stale if ALL tabs are older than staleLimit
+        isStale = g.tabs.every(t => t.lastAccessed && t.lastAccessed < staleLimit);
+      } else if (!g.isActive && g.updateTime < staleLimit) {
+        // Inactive saved groups: use updateTime
+        isStale = true;
+      }
+
+      if (isStale) {
         analysis.stale.push(g);
       }
     });
