@@ -258,7 +258,7 @@ const TidyCore = {
 
     savedGroups.forEach(sg => {
       const guid = sg.savedGuid || sg.id;
-      if (guid && sg.localGroupId !== null && sg.localGroupId !== undefined) {
+      if (guid && sg.localGroupId != null) {
         savedLocalIds.set(sg.localGroupId, guid);
       }
     });
@@ -280,10 +280,10 @@ const TidyCore = {
     const normalizeGroup = (g, type) => {
       if (!g) return null;
       let tabs = g.tabs || [];
-      const localId = type === 'active' ? g.id : (g.localGroupId !== undefined ? g.localGroupId : null);
+      const localId = type === 'active' ? g.id : (g.localGroupId ?? null);
 
       // If it's a saved group but currently active, use active tabs for richer metadata (e.g. lastAccessed)
-      if (type === 'saved' && localId !== null && localId !== undefined && activeGroupMap.has(localId)) {
+      if (type === 'saved' && localId != null && activeGroupMap.has(localId)) {
         tabs = activeGroupMap.get(localId).tabs || [];
       }
 
@@ -310,17 +310,17 @@ const TidyCore = {
       });
 
       return {
-        id: type === 'saved' ? (g.savedGuid || g.id) : (savedLocalIds.get(g.id) || `local-${g.id}`),
-        localId: type === 'active' ? g.id : (g.localGroupId !== undefined ? g.localGroupId : null),
+        id: type === 'saved' ? (g.savedGuid || g.id) : (savedLocalIds.get(localId) || `local-${localId}`),
+        localId: localId,
         title: title,
         color: g.color,
         tabCount: tabCount,
         domains: domains,
         hasMobile: hasMobile,
         updateTime: type === 'saved' ? g.updateTime : Date.now(), // Active is always fresh
-        isActive: type === 'active' || (g.localGroupId !== null),
+        isActive: localId != null,
         tabs: tabs,
-        isSaved: type === 'saved' || savedLocalIds.has(g.id)
+        isSaved: type === 'saved' || savedLocalIds.has(localId)
       };
     };
 
@@ -335,8 +335,8 @@ const TidyCore = {
         allGroups.push(info);
         const guid = sg.savedGuid || sg.id;
         if (guid) processedSavedGuids.add(guid);
-        if (sg.localGroupId !== null && sg.localGroupId !== undefined) {
-          processedLocalIds.add(sg.localGroupId);
+        if (info.localId != null) {
+          processedLocalIds.add(info.localId);
         }
       }
     });
@@ -468,7 +468,7 @@ const TidyCore = {
     // Open the target group, add all missing tabs from duplicates, then if it was inactive, close it.
 
     let localId = targetSaved.localGroupId;
-    const wasInactive = (localId === null);
+    const wasInactive = (localId == null);
 
     if (wasInactive) {
       // Open it first
@@ -531,7 +531,7 @@ const TidyCore = {
         // It's a saved GUID/ID
         // Check if it's currently open
         const sg = savedGroups.find(g => (g.savedGuid || g.id) === id);
-        if (sg && sg.localGroupId !== null && sg.localGroupId !== undefined) {
+        if (sg && sg.localGroupId != null) {
           const tabs = await chrome.tabs.query({ groupId: sg.localGroupId });
           if (tabs.length > 0) {
             await chrome.tabs.remove(tabs.map(t => t.id));
@@ -550,7 +550,7 @@ const TidyCore = {
    * Close and Unsave: Closes active tabs and deletes from saved list
    */
   async closeAndUnsave(savedGuid, localGroupId) {
-    if (localGroupId !== null) {
+    if (localGroupId != null) {
       const tabs = await chrome.tabs.query({ groupId: localGroupId });
       const tabIds = tabs.map(t => t.id);
       if (tabIds.length > 0) {
@@ -571,7 +571,7 @@ const TidyCore = {
    * Ungroup: Dissolves the group but keeps tabs open
    */
   async ungroup(localGroupId) {
-    if (localGroupId === null) return;
+    if (localGroupId == null) return;
 
     const tabs = await chrome.tabs.query({ groupId: localGroupId });
     const tabIds = tabs.map(t => t.id);
