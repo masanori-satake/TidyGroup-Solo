@@ -295,7 +295,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             activeGroups,
             savedGroups,
             analysis,
-            storage
+            storage,
+            diagnostics: TidyCore.lastDiagnostics
           };
         }
 

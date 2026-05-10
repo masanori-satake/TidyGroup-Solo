@@ -84,6 +84,12 @@ const TidyCore = {
   settings: {
     staleThreshold: 30
   },
+  lastDiagnostics: {
+    browser: {},
+    apis: {},
+    errors: [],
+    windowStats: []
+  },
 
   /**
    * Helper to normalize titles for duplicate detection and grouping.
@@ -127,6 +133,23 @@ const TidyCore = {
    * Fetches the current state of tab groups (Active and Saved)
    */
   async fetchState() {
+    // Initialize diagnostics
+    this.lastDiagnostics = {
+      browser: {
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        platform: navigator.platform
+      },
+      apis: {
+        getAllSavedGroups: typeof chrome.tabGroups.getAllSavedGroups,
+        getSavedGroups: typeof chrome.tabGroups.getSavedGroups,
+        tabGroupsQuery: typeof chrome.tabGroups.query,
+        tabGroupsKeys: Object.keys(chrome.tabGroups || {})
+      },
+      errors: [],
+      windowStats: []
+    };
+
     try {
       const activeGroups = await chrome.tabGroups.query({});
       const allTabs = await chrome.tabs.query({});
@@ -143,18 +166,50 @@ const TidyCore = {
         g.tabs = tabsByGroup[g.id] || [];
       });
 
+      // Window diagnostics
+      try {
+        const windows = await chrome.windows.getAll({ populate: false });
+        for (const win of windows) {
+          const winGroups = activeGroups.filter(ag => ag.windowId === win.id);
+          this.lastDiagnostics.windowStats.push({
+            windowId: win.id,
+            type: win.type,
+            groupCount: winGroups.length
+          });
+        }
+      } catch (winErr) {
+        this.lastDiagnostics.errors.push(`Window query error: ${winErr.message}`);
+      }
+
       let savedGroups = [];
-      // Prefer getAllSavedGroups (Manifest V3 newer standard)
+      // Try getAllSavedGroups (Manifest V3 newer standard)
       if (typeof chrome.tabGroups.getAllSavedGroups === 'function') {
-        savedGroups = await chrome.tabGroups.getAllSavedGroups();
-      } else if (typeof chrome.tabGroups.getSavedGroups === 'function') {
-        savedGroups = await chrome.tabGroups.getSavedGroups({});
+        try {
+          savedGroups = await chrome.tabGroups.getAllSavedGroups();
+          this.lastDiagnostics.apis.getAllSavedGroupsResult = savedGroups.length;
+        } catch (e) {
+          this.lastDiagnostics.errors.push(`getAllSavedGroups error: ${e.message}`);
+        }
+      }
+
+      // If still empty and getSavedGroups exists, try fallback/alternative
+      if (savedGroups.length === 0 && typeof chrome.tabGroups.getSavedGroups === 'function') {
+        try {
+          const sgAlt = await chrome.tabGroups.getSavedGroups({});
+          this.lastDiagnostics.apis.getSavedGroupsResult = sgAlt.length;
+          if (sgAlt.length > 0) {
+            savedGroups = sgAlt;
+          }
+        } catch (e) {
+          this.lastDiagnostics.errors.push(`getSavedGroups error: ${e.message}`);
+        }
       }
 
       Utils.log(`Fetched ${activeGroups.length} active groups and ${savedGroups.length} saved groups`);
       return { activeGroups, savedGroups };
     } catch (err) {
       Utils.log(`Error fetching state: ${err.stack || err.message}`);
+      this.lastDiagnostics.errors.push(`Fetch state fatal error: ${err.message}`);
       return { activeGroups: [], savedGroups: [] };
     }
   },
@@ -183,8 +238,9 @@ const TidyCore = {
   analyzeState(activeGroups, savedGroups) {
     const savedLocalIds = new Map();
     savedGroups.forEach(sg => {
-      if (sg.localGroupId !== null) {
-        savedLocalIds.set(sg.localGroupId, sg.savedGuid);
+      const guid = sg.id || sg.savedGuid;
+      if (guid && sg.localGroupId !== null) {
+        savedLocalIds.set(sg.localGroupId, guid);
       }
     });
 
@@ -203,6 +259,7 @@ const TidyCore = {
 
     // Helper to extract info from any group (Active or Saved)
     const normalizeGroup = (g, type) => {
+      if (!g) return null;
       const tabs = g.tabs || [];
       const tabCount = tabs.length;
       const title = g.title || 'Untitled';
@@ -227,7 +284,7 @@ const TidyCore = {
       });
 
       return {
-        id: type === 'saved' ? g.savedGuid : (savedLocalIds.get(g.id) || `local-${g.id}`),
+        id: type === 'saved' ? (g.id || g.savedGuid) : (savedLocalIds.get(g.id) || `local-${g.id}`),
         localId: type === 'active' ? g.id : g.localGroupId,
         title: title,
         color: g.color,
@@ -248,17 +305,22 @@ const TidyCore = {
     // 1. Process Saved Groups
     savedGroups.forEach(sg => {
       const info = normalizeGroup(sg, 'saved');
-      allGroups.push(info);
-      processedSavedGuids.add(sg.savedGuid);
-      if (sg.localGroupId !== null) processedLocalIds.add(sg.localGroupId);
+      if (info) {
+        allGroups.push(info);
+        const guid = sg.id || sg.savedGuid;
+        if (guid) processedSavedGuids.add(guid);
+        if (sg.localGroupId !== null) processedLocalIds.add(sg.localGroupId);
+      }
     });
 
     // 2. Process Active Groups that are NOT saved
     activeGroups.forEach(ag => {
       if (!processedLocalIds.has(ag.id)) {
         const info = normalizeGroup(ag, 'active');
-        allGroups.push(info);
-        processedLocalIds.add(ag.id);
+        if (info) {
+          allGroups.push(info);
+          processedLocalIds.add(ag.id);
+        }
       }
     });
 
